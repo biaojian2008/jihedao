@@ -21,7 +21,7 @@ function PrivyAuthBridge({ children }: { children: React.ReactNode }) {
   const value = {
     ready: true,
     authenticated: privy.authenticated || !!session,
-    authSource: byWechat ? "wechat" : "privy",
+    authSource: (byWechat ? "wechat" : "privy") as "wechat" | "privy",
     login: privy.login,
     loginWithWechat: () => signIn("wechat", { callbackUrl: "/" }),
     logout: byWechat
@@ -60,7 +60,7 @@ function WechatOnlyAuth({ children }: { children: React.ReactNode }) {
   const value = {
     ready: true,
     authenticated: !!session,
-    authSource: session?.user?.openid ? "wechat" : undefined,
+    authSource: (session?.user?.openid ? "wechat" : undefined) as "wechat" | undefined,
     login: () => window.alert(LOGIN_NOT_CONFIGURED_MSG),
     loginWithWechat: () => signIn("wechat", { callbackUrl: "/" }),
     logout: () => signOut({ callbackUrl: "/" }),
