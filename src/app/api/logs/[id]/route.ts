@@ -33,7 +33,7 @@ export async function PATCH(
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  const { data, error } = await supabase()
+  const { data, error } = await supabaseAdmin()
     .from("official_logs")
     .update({
       ...(body.title != null && { title: body.title }),
