@@ -49,12 +49,12 @@ export function WeChat(options: WeChatProviderOptions): OAuthConfig<WeChatProfil
         }
         return {
           tokens: {
-            access_token: data.access_token,
-            refresh_token: data.refresh_token,
-            expires_in: data.expires_in,
-            openid: data.openid,
-            scope: data.scope,
-            unionid: data.unionid,
+            access_token: data.access_token != null ? String(data.access_token) : undefined,
+            refresh_token: data.refresh_token != null ? String(data.refresh_token) : undefined,
+            expires_in: data.expires_in != null ? Number(data.expires_in) : undefined,
+            openid: data.openid != null ? String(data.openid) : undefined,
+            scope: data.scope != null ? String(data.scope) : undefined,
+            unionid: data.unionid != null ? String(data.unionid) : undefined,
           },
         };
       },
