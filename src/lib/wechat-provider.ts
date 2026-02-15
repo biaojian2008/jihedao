@@ -4,6 +4,7 @@
  * @see https://developers.weixin.qq.com/doc/oplatform/Website_App/WeChat_Login/Wechat_Login.html
  */
 import type { OAuthConfig } from "next-auth/providers/oauth";
+import type { TokenSetParameters } from "openid-client";
 
 export type WeChatProviderOptions = {
   clientId: string;
@@ -36,7 +37,7 @@ export function WeChat(options: WeChatProviderOptions): OAuthConfig<WeChatProfil
     },
     token: {
       url: tokenUrl,
-      async request({ params, provider }) {
+      async request({ params, provider }): Promise<{ tokens: TokenSetParameters }> {
         const code = (params as Record<string, string>).code ?? "";
         const appid = (provider as { clientId?: string }).clientId ?? clientId;
         const res = await fetch(
@@ -47,16 +48,15 @@ export function WeChat(options: WeChatProviderOptions): OAuthConfig<WeChatProfil
         if (data.errcode != null) {
           throw new Error(String(data.errmsg ?? data.errcode));
         }
-        return {
-          tokens: {
-            access_token: data.access_token != null ? String(data.access_token) : undefined,
-            refresh_token: data.refresh_token != null ? String(data.refresh_token) : undefined,
-            expires_in: data.expires_in != null ? Number(data.expires_in) : undefined,
-            openid: data.openid != null ? String(data.openid) : undefined,
-            scope: data.scope != null ? String(data.scope) : undefined,
-            unionid: data.unionid != null ? String(data.unionid) : undefined,
-          },
+        const tokens: TokenSetParameters = {
+          access_token: data.access_token != null ? String(data.access_token) : undefined,
+          refresh_token: data.refresh_token != null ? String(data.refresh_token) : undefined,
+          expires_in: data.expires_in != null ? Number(data.expires_in) : undefined,
+          scope: data.scope != null ? String(data.scope) : undefined,
+          openid: data.openid != null ? String(data.openid) : undefined,
+          unionid: data.unionid != null ? String(data.unionid) : undefined,
         };
+        return { tokens };
       },
     },
     userinfo: {
