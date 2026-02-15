@@ -11,6 +11,7 @@ const items = [
   { href: "/community", key: "nav.community" },
   { href: "/members", key: "nav.members" },
   { href: "/dm", key: "nav.dm" },
+  { href: "/me", key: "nav.profile" },
 ] as const;
 
 const iconSize = "w-6 h-6";

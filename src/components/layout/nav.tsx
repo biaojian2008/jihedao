@@ -52,38 +52,53 @@ export function Nav() {
         </Link>
 
         <div className="flex items-center gap-4 sm:gap-6">
-          {navKeys.map(({ href, key }) => (
-            <Link
-              key={href}
-              href={href}
-              aria-label={t(key)}
-              title={t(key)}
-              className={`flex items-center justify-center p-2 rounded-md transition hover:text-accent ${
-                pathname === href ? "text-accent" : "text-foreground/70"
-              }`}
-            >
-              <NavIcon href={href} className="h-5 w-5 shrink-0" />
-            </Link>
-          ))}
-
-          <div className="flex items-center gap-1 text-[10px]">
-            {(["zh", "en", "ja"] as Locale[]).map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => setLocale(l)}
-                className={`px-1.5 py-0.5 transition hover:text-accent ${
-                  locale === l ? "text-accent" : "text-foreground/50"
+          {/* 桌面：主导航链接；手机端不显示，底部栏已有 */}
+          <div className="hidden md:flex items-center gap-1">
+            {navKeys.map(({ href, key }) => (
+              <Link
+                key={href}
+                href={href}
+                aria-label={t(key)}
+                title={t(key)}
+                className={`flex items-center justify-center p-2 rounded-md transition hover:text-accent ${
+                  pathname === href ? "text-accent" : "text-foreground/70"
                 }`}
               >
-                {l === "zh" ? "中" : l === "en" ? "en" : "日"}
-              </button>
+                <NavIcon href={href} className="h-5 w-5 shrink-0" />
+              </Link>
             ))}
           </div>
 
+          {/* 中英日 + 手机端仅保留后台管理 */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 text-[10px]">
+              {(["zh", "en", "ja"] as Locale[]).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setLocale(l)}
+                  className={`px-1.5 py-0.5 transition hover:text-accent ${
+                    locale === l ? "text-accent" : "text-foreground/50"
+                  }`}
+                >
+                  {l === "zh" ? "中" : l === "en" ? "en" : "日"}
+                </button>
+              ))}
+            </div>
+            <Link
+              href="/admin"
+              aria-label={t("nav.admin")}
+              title={t("nav.admin")}
+              className="flex md:hidden items-center justify-center p-2 rounded-md transition hover:text-accent text-foreground/70"
+            >
+              <NavIcon href="/admin" className="h-5 w-5 shrink-0" />
+            </Link>
+          </div>
+
+          {/* 桌面：个人中心/登录；手机端不显示，底部栏有个人中心 */}
           {ready &&
             (authenticated ? (
-              <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2">
                 <Link
                   href="/me"
                   className="rounded-full border border-foreground/20 px-3 py-1.5 text-xs"
@@ -99,7 +114,7 @@ export function Nav() {
                 </button>
               </div>
             ) : (
-              <div className="relative" ref={dropdownRef}>
+              <div className="relative hidden md:block" ref={dropdownRef}>
                 <button
                   type="button"
                   onClick={() => setLoginOpen((o) => !o)}

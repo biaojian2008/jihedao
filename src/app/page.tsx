@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { HomePublishButton } from "@/components/home/home-publish-button";
+import { HomeSearchButton } from "@/components/home/home-search-button";
 
 type Locale = "zh" | "en" | "ja";
 type CmsResolved = {
@@ -353,6 +354,7 @@ export default async function Home() {
           ))}
         </section>
       </main>
+      <HomeSearchButton />
       <HomePublishButton />
     </div>
   );
