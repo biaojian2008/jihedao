@@ -76,7 +76,7 @@ export function WeChat(options: WeChatProviderOptions): OAuthConfig<WeChatProfil
     },
     profile(profile: WeChatProfile) {
       return {
-        id: profile.openid ?? (profile as Record<string, unknown>).unionid ?? "",
+        id: profile.openid ?? profile.unionid ?? "",
         name: profile.nickname ?? null,
         email: null,
         image: profile.headimgurl ?? null,
