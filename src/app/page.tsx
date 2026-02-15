@@ -13,6 +13,7 @@ type CmsResolved = {
   hero_cta_secondary: string;
   galt_gulch_image_url: string;
   camp_image_url: string;
+  camp_media_urls: string[];
   intro_title: string;
   intro_body: string;
   highlights: { key: string; title: string; body: string }[];
