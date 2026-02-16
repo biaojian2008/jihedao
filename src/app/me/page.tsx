@@ -16,7 +16,7 @@ type Status = "idle" | "redirecting" | "syncing" | "done" | "error" | "no-auth" 
 
 export default function MePage() {
   const router = useRouter();
-  const { ready, authenticated, user } = useAuth();
+  const { ready, authenticated, user, login } = useAuth();
   const [status, setStatus] = useState<Status>("idle");
   const [syncError, setSyncError] = useState<string | null>(null);
   const started = useRef(false);
@@ -125,6 +125,15 @@ export default function MePage() {
         <main className="mx-auto max-w-xl px-4 py-8 text-center sm:px-6">
           <h1 className="mb-2 text-xl font-semibold text-foreground">个人中心</h1>
           <p className="text-sm text-foreground/70">请先登录</p>
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => login()}
+              className="rounded-full border border-accent bg-accent px-6 py-3 text-sm font-semibold text-black hover:bg-accent/90"
+            >
+              登录
+            </button>
+          </div>
           {links}
         </main>
       </div>
