@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -21,18 +20,15 @@ export function Nav() {
   const pathname = usePathname();
   const { ready, authenticated, login, logout } = useAuth();
   const { locale, setLocale, t } = useLocale();
-  const [loginOpen, setLoginOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setLoginOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const handleLogin = () => {
+    login();
+  };
+
+  const handleGoogleLogin = () => {
+    const base = typeof window !== "undefined" ? window.location.origin : "";
+    window.location.href = `${base}/api/auth/signin/google?callbackUrl=${encodeURIComponent(base + "/")}`;
+  };
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-foreground/10 bg-background/95 backdrop-blur">
@@ -106,62 +102,21 @@ export function Nav() {
                 </button>
               </div>
             ) : (
-              <div className="relative" ref={dropdownRef}>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setLoginOpen((o) => !o)}
+                  onClick={handleLogin}
                   className="rounded-full border border-accent bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent hover:text-black md:px-4 md:py-2"
                 >
                   {t("nav.login")}
                 </button>
-                {loginOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[200px] max-w-[calc(100vw-2rem)] rounded-lg border border-foreground/10 bg-background py-1 shadow-lg">
-                    <p className="px-4 py-2 text-[10px] text-foreground/50 border-b border-foreground/10">
-                      若 Farcaster 一直转圈，可改用邮箱或钱包
-                    </p>
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs text-foreground hover:bg-foreground/5"
-                      onClick={() => {
-                        setLoginOpen(false);
-                        login();
-                      }}
-                    >
-                      {t("nav.loginFarcaster")}
-                    </button>
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs text-foreground hover:bg-foreground/5"
-                      onClick={() => {
-                        setLoginOpen(false);
-                        login();
-                      }}
-                    >
-                      {t("nav.loginEmail")}
-                    </button>
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs text-foreground hover:bg-foreground/5"
-                      onClick={() => {
-                        setLoginOpen(false);
-                        login();
-                      }}
-                    >
-                      {t("nav.loginWallet")}
-                    </button>
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs text-foreground hover:bg-foreground/5"
-                      onClick={() => {
-                        setLoginOpen(false);
-                        const base = typeof window !== "undefined" ? window.location.origin : "";
-                        window.location.href = `${base}/api/auth/signin/google?callbackUrl=${encodeURIComponent(base + "/")}`;
-                      }}
-                    >
-                      {t("nav.loginGoogle")}
-                    </button>
-                  </div>
-                )}
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  className="text-[10px] text-foreground/50 hover:text-accent"
+                >
+                  Google
+                </button>
               </div>
             ))}
         </div>

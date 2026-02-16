@@ -65,7 +65,7 @@ export function MemberCard({ member }: Props) {
   return (
     <div className="rounded-xl border border-foreground/10 bg-black/40 p-4">
       <div className="flex items-start gap-3">
-        <Link href={`/u/${member.id}`} className="shrink-0">
+        <Link href={`/dm?with=${member.id}`} className="shrink-0" title="与他交流">
           {member.avatar_url ? (
             <img
               src={member.avatar_url}
@@ -77,7 +77,7 @@ export function MemberCard({ member }: Props) {
           )}
         </Link>
         <div className="min-w-0 flex-1">
-          <Link href={`/u/${member.id}`} className="font-medium text-foreground hover:text-accent">
+          <Link href={`/dm?with=${member.id}`} className="font-medium text-foreground hover:text-accent">
             {member.display_name ?? "匿名"}
           </Link>
           {displayDid && (

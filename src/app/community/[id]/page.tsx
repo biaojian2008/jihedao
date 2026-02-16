@@ -86,7 +86,7 @@ export default async function PostDetailPage({ params }: Props) {
   if (!post) notFound();
 
   return (
-    <div className="min-h-screen pt-14 pb-20 md:pb-16">
+    <div className="min-h-screen pt-14 pb-20 md:pb-16" style={{ paddingBottom: "max(5rem, calc(5rem + env(safe-area-inset-bottom, 0)))" }}>
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <PostDetailView post={post} />
       </main>

@@ -18,6 +18,16 @@ type CmsResolved = {
   intro_title: string;
   intro_body: string;
   highlights: { key: string; title: string; body: string }[];
+  /** 底部板块可后台修改：cms_config 中 key 为 bottom_one_title / bottom_one_body 等 */
+  bottom_one_title?: string;
+  bottom_one_body?: string;
+  bottom_two_title?: string;
+  bottom_two_items?: { name: string; desc: string }[];
+  bottom_three_title?: string;
+  bottom_three_items?: { name: string; desc: string }[];
+  bottom_four_title?: string;
+  bottom_four_lead?: string;
+  bottom_four_items?: { name: string; desc: string }[];
 };
 
 function resolveValue(value: unknown, locale: Locale): string {
@@ -38,13 +48,13 @@ const defaultByLocale: Record<Locale, CmsResolved> = {
     hero_subtitle: "可否相济？和而不同。",
     hero_description:
       "在这里，你的项目、立场与信用会被完整记录；每一次协作、每一段对话，都可以成为未来契约的基础。",
-    hero_cta_primary: "立即加入协作",
+    hero_cta_primary: "创建你的 DID",
     hero_cta_secondary: "浏览社区动态",
     galt_gulch_image_url: "",
     camp_image_url: "",
     camp_media_urls: [],
-    intro_title: "我们的介绍",
-    intro_body: "济和营地是现实中的高尔特峡谷，汇聚长期主义者与超级个体，在协作与信用中探索数据主权与价值归属。",
+    intro_title: "",
+    intro_body: "",
     highlights: [
       { key: "COLLABORATION", title: "协作即资产", body: "通过项目、任务与课程，将松散关系沉淀为可追踪的协作网络。" },
       { key: "CREDIT", title: "信用驱动排序", body: "基于行为与贡献的信用分，决定你在时间线与检索中的位置。" },
@@ -59,13 +69,13 @@ const defaultByLocale: Record<Locale, CmsResolved> = {
     hero_subtitle: "Complement each other; stay different.",
     hero_description:
       "Your projects, stances and reputation are recorded; every collaboration and conversation can become the basis of future agreements.",
-    hero_cta_primary: "Join now",
+    hero_cta_primary: "Create your DID",
     hero_cta_secondary: "Browse community",
     galt_gulch_image_url: "",
     camp_image_url: "",
     camp_media_urls: [],
-    intro_title: "About us",
-    intro_body: "Jihe Camp is a real-world Galt's Gulch, where long-termists and super-individuals gather to explore data sovereignty and value through collaboration and trust.",
+    intro_title: "",
+    intro_body: "",
     highlights: [
       { key: "COLLABORATION", title: "Collaboration as asset", body: "Turn loose ties into a traceable network through projects, tasks and courses." },
       { key: "CREDIT", title: "Credit-driven ranking", body: "Your credit score from behavior and contribution shapes your position in feed and search." },
@@ -85,8 +95,8 @@ const defaultByLocale: Record<Locale, CmsResolved> = {
     galt_gulch_image_url: "",
     camp_image_url: "",
     camp_media_urls: [],
-    intro_title: "私たちについて",
-    intro_body: "済和キャンプは現実のゴルト峡谷。長期主義者とスーパー個人が集い、協力と信用の中でデータ主権と価値を探求します。",
+    intro_title: "",
+    intro_body: "",
     highlights: [
       { key: "COLLABORATION", title: "協力即ち資産", body: "プロジェクト・タスク・講座で緩い関係を追跡可能なネットワークに。" },
       { key: "CREDIT", title: "信用でランク", body: "行動と貢献に基づく信用スコアがフィードと検索の順位を決めます。" },
@@ -148,6 +158,33 @@ async function getCms(locale: Locale): Promise<CmsResolved> {
             body: body || (defaultCms.highlights.find((d) => d.key === key)?.body ?? ""),
           };
         });
+      }
+      if (typeof raw.bottom_one_title === "string") res.bottom_one_title = raw.bottom_one_title as string;
+      if (typeof raw.bottom_one_body === "string") res.bottom_one_body = raw.bottom_one_body as string;
+      if (typeof raw.bottom_two_title === "string") res.bottom_two_title = raw.bottom_two_title as string;
+      if (typeof raw.bottom_two_items === "string") {
+        try {
+          res.bottom_two_items = JSON.parse(raw.bottom_two_items as string) as { name: string; desc: string }[];
+        } catch {
+          /* ignore */
+        }
+      }
+      if (typeof raw.bottom_three_title === "string") res.bottom_three_title = raw.bottom_three_title as string;
+      if (typeof raw.bottom_three_items === "string") {
+        try {
+          res.bottom_three_items = JSON.parse(raw.bottom_three_items as string) as { name: string; desc: string }[];
+        } catch {
+          /* ignore */
+        }
+      }
+      if (typeof raw.bottom_four_title === "string") res.bottom_four_title = raw.bottom_four_title as string;
+      if (typeof raw.bottom_four_lead === "string") res.bottom_four_lead = raw.bottom_four_lead as string;
+      if (typeof raw.bottom_four_items === "string") {
+        try {
+          res.bottom_four_items = JSON.parse(raw.bottom_four_items as string) as { name: string; desc: string }[];
+        } catch {
+          /* ignore */
+        }
       }
       return res;
     } catch {
@@ -238,7 +275,7 @@ export default async function Home() {
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <Link
-              href="/community"
+              href="/me"
               className="rounded-full border border-accent bg-accent px-6 py-2 text-xs font-semibold text-black transition hover:bg-transparent hover:text-accent"
             >
               {cms.hero_cta_primary}
@@ -283,10 +320,12 @@ export default async function Home() {
           ))}
         </section>
 
-        <section className="mt-12 rounded-xl border border-foreground/10 bg-black/40 p-6 sm:mt-16">
-          <h2 className="mb-3 text-lg font-semibold text-foreground">{cms.intro_title}</h2>
-          <p className="whitespace-pre-line text-sm text-foreground/80">{cms.intro_body}</p>
-        </section>
+        {cms.intro_title || cms.intro_body ? (
+          <section className="mt-12 rounded-xl border border-foreground/10 bg-black/40 p-6 sm:mt-16">
+            {cms.intro_title ? <h2 className="mb-3 text-lg font-semibold text-foreground">{cms.intro_title}</h2> : null}
+            {cms.intro_body ? <p className="whitespace-pre-line text-sm text-foreground/80">{cms.intro_body}</p> : null}
+          </section>
+        ) : null}
 
         {cms.galt_gulch_image_url ? (
           <section className="mt-12 sm:mt-16">
@@ -301,16 +340,16 @@ export default async function Home() {
           </section>
         ) : null}
 
-        {/* 以下为你提供的四大板块文案，沿用页面既有风格 */}
+        {/* 四大板块：标题与内容可在后台 cms_config 中配置 bottom_one_title / bottom_one_body 等 */}
         <section className="mt-12 rounded-xl border border-foreground/10 bg-black/40 p-6 sm:mt-16">
-          <h2 className="mb-3 text-lg font-semibold text-accent">{BOTTOM_SECTIONS.one.title}</h2>
-          <p className="text-sm leading-relaxed text-foreground/70">{BOTTOM_SECTIONS.one.body}</p>
+          <h2 className="mb-3 text-lg font-semibold text-accent">{cms.bottom_one_title ?? BOTTOM_SECTIONS.one.title}</h2>
+          <p className="text-sm leading-relaxed text-foreground/70">{cms.bottom_one_body ?? BOTTOM_SECTIONS.one.body}</p>
         </section>
 
         <section className="mt-6 rounded-xl border border-foreground/10 bg-black/40 p-6">
-          <h2 className="mb-4 text-lg font-semibold text-accent">{BOTTOM_SECTIONS.two.title}</h2>
+          <h2 className="mb-4 text-lg font-semibold text-accent">{(cms.bottom_two_title ?? BOTTOM_SECTIONS.two.title)}</h2>
           <div className="space-y-3 text-sm">
-            {BOTTOM_SECTIONS.two.items.map((item) => (
+            {(cms.bottom_two_items ?? BOTTOM_SECTIONS.two.items).map((item) => (
               <div key={item.name}>
                 <p className="font-medium text-foreground">{item.name}</p>
                 <p className="mt-0.5 text-foreground/70">{item.desc}</p>
@@ -320,9 +359,9 @@ export default async function Home() {
         </section>
 
         <section className="mt-6 rounded-xl border border-foreground/10 bg-black/40 p-6">
-          <h2 className="mb-4 text-lg font-semibold text-accent">{BOTTOM_SECTIONS.three.title}</h2>
+          <h2 className="mb-4 text-lg font-semibold text-accent">{(cms.bottom_three_title ?? BOTTOM_SECTIONS.three.title)}</h2>
           <div className="space-y-3 text-sm">
-            {BOTTOM_SECTIONS.three.items.map((item) => (
+            {(cms.bottom_three_items ?? BOTTOM_SECTIONS.three.items).map((item) => (
               <div key={item.name}>
                 <p className="font-medium text-foreground">{item.name}</p>
                 <p className="mt-0.5 text-foreground/70">{item.desc}</p>
@@ -332,10 +371,10 @@ export default async function Home() {
         </section>
 
         <section className="mt-6 rounded-xl border border-foreground/10 bg-black/40 p-6">
-          <h2 className="mb-2 text-lg font-semibold text-accent">{BOTTOM_SECTIONS.four.title}</h2>
-          <p className="mb-4 text-sm italic text-foreground/60">{BOTTOM_SECTIONS.four.lead}</p>
+          <h2 className="mb-2 text-lg font-semibold text-accent">{(cms.bottom_four_title ?? BOTTOM_SECTIONS.four.title)}</h2>
+          <p className="mb-4 text-sm italic text-foreground/60">{(cms.bottom_four_lead ?? BOTTOM_SECTIONS.four.lead)}</p>
           <div className="space-y-3 text-sm">
-            {BOTTOM_SECTIONS.four.items.map((item) => (
+            {(cms.bottom_four_items ?? BOTTOM_SECTIONS.four.items).map((item) => (
               <div key={item.name}>
                 <p className="font-medium text-foreground">{item.name}</p>
                 <p className="mt-0.5 text-foreground/70">{item.desc}</p>

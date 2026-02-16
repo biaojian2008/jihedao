@@ -44,6 +44,10 @@ npm run dev
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 匿名公钥 |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase 服务端密钥（Settings → API → service_role），**管理后台保存 CMS 必须**，否则会报 RLS 错误 |
 | `NEXT_PUBLIC_PRIVY_APP_ID` | Privy 应用 ID（可选，未配置时登录为占位） |
+| **`NEXTAUTH_URL`** | **部署到线上必填**，与站点一致，如 `https://www.jihedao.xyz` 或 `https://jihedao.xyz`。未设会导致 "Server error" |
+| **`NEXTAUTH_SECRET`** | **部署到线上必填**，任意随机字符串（如 `openssl rand -base64 32` 生成）。未设会导致 "Server error" |
+| `AUTH_GOOGLE_CLIENT_ID` / `AUTH_GOOGLE_CLIENT_SECRET` | Google 登录（NextAuth），在 [Google Cloud Console](https://console.cloud.google.com) 创建 OAuth 2.0 客户端，授权回调填 `{NEXTAUTH_URL}/api/auth/callback/google` |
+| `AUTH_WECHAT_APP_ID` / `AUTH_WECHAT_APP_SECRET` | 微信登录（NextAuth） |
 | `ADMIN_SECRET` | 后台 API 鉴权（请求头 x-admin-secret），用于 PATCH /api/cms、POST/PATCH/DELETE /api/logs |
 | `NEXT_PUBLIC_DEFAULT_AUTHOR_ID` | 可选，演示发帖用的 user_profiles.id（如种子用户 UUID） |
 

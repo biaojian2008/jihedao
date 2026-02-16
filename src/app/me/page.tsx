@@ -197,7 +197,10 @@ export default function MePage() {
         <main className="mx-auto max-w-xl px-4 py-8 text-center sm:px-6">
           <h1 className="mb-2 text-xl font-semibold text-foreground">个人中心</h1>
           <p className="text-sm text-foreground/60">
-            {status === "syncing" ? "正在同步资料…" : "正在跳转…"}
+            {status === "syncing" ? "正在同步您的档案与 DID，请稍候…" : "正在跳转到个人名片，请稍候…"}
+          </p>
+          <p className="mt-2 text-[11px] text-foreground/40">
+            {status === "syncing" ? "首次登录需在服务器创建档案并写入 DID，通常几秒内完成。" : ""}
           </p>
           {links}
         </main>

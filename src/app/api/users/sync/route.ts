@@ -104,6 +104,10 @@ export async function POST(request: NextRequest) {
     rawFid != null && rawFid !== ""
       ? String(typeof rawFid === "number" ? rawFid : rawFid)
       : null;
+  const hasAvatar = avatar_url != null && String(avatar_url).trim() !== "";
+  const defaultAvatarUrl = hasAvatar
+    ? avatar_url
+    : `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(privy_user_id)}&backgroundColor=0a0a0a`;
 
   const { data: existing } = await supabase
     .from("user_profiles")
@@ -138,7 +142,7 @@ export async function POST(request: NextRequest) {
       privy_user_id,
       wallet_address: wallet_address || null,
       display_name: display_name || null,
-      avatar_url: avatar_url || null,
+      avatar_url: defaultAvatarUrl,
       fid,
       credit_score: 50,
     })

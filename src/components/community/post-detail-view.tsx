@@ -127,7 +127,12 @@ export function PostDetailView({ post }: Props) {
           {t(`community.type.${post.type}`) || post.type}
         </span>
       </div>
-      <h1 className="mt-2 text-2xl font-semibold text-accent">{post.title}</h1>
+      {post.type !== "stance" && (
+        <h1 className="mt-2 text-2xl font-semibold text-accent">{post.title}</h1>
+      )}
+      {post.type === "stance" && post.title && post.title !== "观点" && (
+        <p className="mt-2 text-sm text-foreground/60">{post.title}</p>
+      )}
       {post.tags?.length ? (
         <div className="mt-2 flex flex-wrap gap-2">
           {post.tags.map((tag) => (
@@ -182,8 +187,8 @@ export function PostDetailView({ post }: Props) {
       )}
 
       <div className="mt-6">
-        <p className="text-xs font-medium text-foreground/60">{t("publisher.content")}（简介）</p>
-        <div className="mt-1 whitespace-pre-wrap text-sm text-foreground/90">
+        {post.type !== "stance" && <p className="text-xs font-medium text-foreground/60">{t("publisher.content")}（简介）</p>}
+        <div className={`whitespace-pre-wrap text-foreground/90 ${post.type === "stance" ? "text-base" : "mt-1 text-sm"}`}>
           {post.content}
         </div>
         <TranslateButton text={post.content} />

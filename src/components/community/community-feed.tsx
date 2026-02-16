@@ -152,6 +152,7 @@ export function CommunityFeed() {
             <option value="task">{t("community.type.task")}</option>
             <option value="product">{t("community.type.product")}</option>
             <option value="course">{t("community.type.course")}</option>
+            <option value="demand">{t("community.type.demand")}</option>
             <option value="stance">{t("community.type.stance")}</option>
           </select>
         </div>

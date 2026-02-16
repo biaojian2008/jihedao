@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
   } else if (feed === "following" && userId && followingIds.length === 0) {
     return NextResponse.json([]);
   }
-  if (type && ["project", "task", "product", "course", "stance"].includes(type)) {
+  if (type && ["project", "task", "product", "course", "demand", "stance"].includes(type)) {
     query = query.eq("type", type);
   }
   if (q.trim()) {
@@ -157,20 +157,27 @@ export async function POST(request: NextRequest) {
     repay_when,
     details,
   } = body;
-  if ((!author_id && !privy_user_id) || !type || !title || !content) {
+  if ((!author_id && !privy_user_id) || !type || !content) {
     return NextResponse.json(
-      { error: "Missing author_id or privy_user_id, type, title or content" },
+      { error: "Missing author_id or privy_user_id, type or content" },
       { status: 400 }
     );
   }
-  const validTypes = ["project", "task", "product", "course", "stance"];
+  const effectiveTitle = type === "stance" && (!title || !title.trim()) ? (content.trim().slice(0, 80) || "观点") : (title ?? "").trim();
+  if (type !== "stance" && !effectiveTitle) {
+    return NextResponse.json(
+      { error: "Missing title" },
+      { status: 400 }
+    );
+  }
+  const validTypes = ["project", "task", "product", "course", "demand", "stance"];
   if (!validTypes.includes(type)) {
     return NextResponse.json({ error: "Invalid type" }, { status: 400 });
   }
 
   const coll = Math.max(0, Number(author_collateral) || 0);
   const freeze = Math.max(0, Number(participant_freeze) || 0);
-  const needsCollateral = ["project", "task", "product", "course"].includes(type);
+  const needsCollateral = ["project", "task", "product", "course", "demand"].includes(type);
   if (["project", "task"].includes(type)) {
     if (coll <= 0) {
       return NextResponse.json({ error: "项目/任务必须设置发布者抵押（济和币）" }, { status: 400 });
@@ -232,7 +239,7 @@ export async function POST(request: NextRequest) {
 
   const contractInput = {
     type,
-    title: title.slice(0, 500),
+    title: effectiveTitle.slice(0, 500),
     content: content.slice(0, 10000),
     details: (details || "").slice(0, 5000),
     author_collateral: coll,
@@ -248,7 +255,7 @@ export async function POST(request: NextRequest) {
     .insert({
       author_id: resolvedAuthorId,
       type,
-      title: title.slice(0, 500),
+      title: effectiveTitle.slice(0, 500),
       content: content.slice(0, 10000),
       tags: Array.isArray(tags) ? tags.slice(0, 20) : [],
       media_urls: Array.isArray(media_urls) ? media_urls : [],

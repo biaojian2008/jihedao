@@ -163,6 +163,18 @@ export function ProfileCard({ profile, userId }: Props) {
     }
   };
 
+  const checkDidAvailable = async (handle: string) => {
+    if (!handle || handle.length < 3) return;
+    const normalized = handle.trim().toLowerCase().replace(/^@/, "");
+    if (!normalized) return;
+    const res = await fetch(
+      `/api/users/check-did?handle=${encodeURIComponent(normalized)}&exclude_id=${encodeURIComponent(userId)}`,
+      { credentials: "include" }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!data.available) setDidError(t("profile.didTaken"));
+  };
+
   const handleSaveDid = async () => {
     if (!isOwnProfile || profile.fid) return;
     setDidError(null);
@@ -365,11 +377,16 @@ export function ProfileCard({ profile, userId }: Props) {
           <dd>
             {profile.fid ? (
               <span className="font-mono text-foreground break-all" data-did="farcaster">{displayDid}</span>
+            ) : profile.custom_did?.trim() ? (
+              <div>
+                <span className="font-mono text-foreground break-all">{displayDid}</span>
+                <p className="mt-1 text-[11px] text-foreground/60">{t("profile.didSavedNoEdit")}</p>
+              </div>
             ) : isOwnProfile ? (
               <div>
-                <p className="mb-1.5 text-[11px] text-amber-600/90">{t("profile.didPermanentHint")}</p>
-                {canSyncFarcaster && (
-                  <p className="mb-1.5 text-[11px] text-foreground/50">Farcaster 登录后点击下方「从 Farcaster 同步」可自动将 DID 更新为 Farcaster FID；若同步无效请查看顶部红字报错或刷新重试。</p>
+                <p className="mb-1.5 text-[11px] text-foreground/60">{t("profile.didSaveReminder")}</p>
+                {canSyncFarcaster && farcasterFields?.fid && (
+                  <p className="mb-1.5 text-[11px] text-foreground/50">或点击下方「从 Farcaster 同步」使用 Farcaster FID 作为 DID。</p>
                 )}
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-foreground/70">did:jihe:</span>
@@ -379,6 +396,10 @@ export function ProfileCard({ profile, userId }: Props) {
                     onChange={(e) => {
                       setCustomDidInput(e.target.value);
                       setDidError(null);
+                    }}
+                    onBlur={() => {
+                      const v = customDidInput.trim().replace(/^@/, "").toLowerCase();
+                      if (v.length >= 3) checkDidAvailable(v);
                     }}
                     placeholder={t("profile.didPlaceholder")}
                     className="min-w-[120px] flex-1 rounded border border-foreground/20 bg-black/40 px-2 py-1 font-mono text-foreground placeholder:text-foreground/40"
@@ -403,14 +424,20 @@ export function ProfileCard({ profile, userId }: Props) {
             )}
           </dd>
         </div>
-        {profile.wallet_address && (
+        {profile.wallet_address ? (
           <div>
             <dt className="text-foreground/50">{t("profile.wallet")}</dt>
             <dd className="font-mono text-foreground/90 break-all">
               {profile.wallet_address}
             </dd>
+            <p className="mt-0.5 text-[11px] text-foreground/50">{t("profile.walletHint")}</p>
           </div>
-        )}
+        ) : isOwnProfile ? (
+          <div>
+            <dt className="text-foreground/50">{t("profile.wallet")}</dt>
+            <dd className="text-[11px] text-foreground/50">{t("profile.walletHint")}</dd>
+          </div>
+        ) : null}
         <div>
           <dt className="text-foreground/50">{t("profile.credit")}</dt>
           <dd className="font-semibold text-accent">
@@ -451,7 +478,15 @@ export function ProfileCard({ profile, userId }: Props) {
       )}
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        {canSyncFarcaster && (
+        {isOwnProfile && privyUser?.id && !farcasterFields?.fid && (
+          <div className="w-full rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-foreground/90">
+            <p className="font-medium text-amber-600/90">{t("profile.syncFarcasterNeedFarcaster")}</p>
+            <a href="https://warpcast.com" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-accent hover:underline">
+              Warpcast（Farcaster 客户端）
+            </a>
+          </div>
+        )}
+        {canSyncFarcaster && farcasterFields?.fid && (
           <>
             <button
               type="button"
@@ -459,7 +494,7 @@ export function ProfileCard({ profile, userId }: Props) {
               disabled={syncingFarcaster}
               className="rounded-full border border-foreground/30 bg-foreground/5 px-4 py-2 text-xs font-semibold text-foreground hover:bg-foreground/10 disabled:opacity-50"
             >
-              {syncingFarcaster ? "同步中…" : farcasterFields?.fid ? "从 Farcaster 同步头像与昵称" : "尝试同步 Farcaster 资料"}
+              {syncingFarcaster ? "同步中…" : "从 Farcaster 同步头像与昵称"}
             </button>
             {syncError && (
               <p className="w-full text-xs text-red-400 mt-1 break-words">

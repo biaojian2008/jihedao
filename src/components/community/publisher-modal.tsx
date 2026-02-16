@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentProfileId } from "@/lib/current-user";
 import { setCurrentProfileId } from "@/lib/current-user";
@@ -15,10 +16,48 @@ const POST_TYPES = [
   { value: "task", key: "community.type.task" },
   { value: "product", key: "community.type.product" },
   { value: "course", key: "community.type.course" },
+  { value: "demand", key: "community.type.demand" },
   { value: "stance", key: "community.type.stance" },
 ] as const;
 
 type PostType = (typeof POST_TYPES)[number]["value"];
+
+const STANCE_EMOJIS = "😀😃😄😁😅😂🤣😊😇🙂😉😌😍🥰😘😗😙😚😋😛😜🤪😝🤑🤗🤭🤫🤔😐😑😶😏😣😥😮🤐😯😪😫🥱😴🤤😷🤒🤕🤢🤮🤧🥵🥶🥴😵🤯🤠🥳🥸😎🤓🧐😕😟🙁☹️😮😯😲😳🥺😦😧😨😰😥😢😭😱😖😣😞😓😩😫🥱😤😡😠🤬😈💀☠️💩🤡👻💪👍👎👏🙌🤝🙏✌️🤞🤟🤘🤙👌🤌🤏👈👉👆👇☝️✋🤚🖐️🖖👋🤙💅🦾🦿🦵🦶👂🦻👃🧠🫀🫁🦷🦴👀👁️👅👄".split("");
+
+function StanceMediaButtons({ mediaUrlsStr, setMediaUrlsStr }: { mediaUrlsStr: string; setMediaUrlsStr: (v: string) => void }) {
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const upload = async (file: File) => {
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/upload/media", { method: "POST", credentials: "include", body: form });
+      const data = await res.json().catch(() => ({}));
+      if (data?.url) {
+        const prev = mediaUrlsStr.trim();
+        setMediaUrlsStr(prev ? prev + "\n" + data.url : data.url);
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) upload(f);
+    e.target.value = "";
+  };
+  return (
+    <>
+      <input ref={galleryRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" onChange={onFile} />
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFile} />
+      <button type="button" onClick={() => galleryRef.current?.click()} disabled={uploading} className="rounded-lg border border-foreground/20 p-2 text-foreground/70 hover:bg-foreground/10 disabled:opacity-50" title="图片">🖼️</button>
+      <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading} className="rounded-lg border border-foreground/20 p-2 text-foreground/70 hover:bg-foreground/10 disabled:opacity-50" title="拍照">📷</button>
+      {uploading && <span className="text-[10px] text-foreground/50">上传中…</span>}
+    </>
+  );
+}
 
 type Props = { open: boolean; onClose: () => void };
 
@@ -48,6 +87,7 @@ export function PublisherModal({ open, onClose }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [showStanceEmoji, setShowStanceEmoji] = useState(false);
 
   const isProject = type === "project";
   const isTask = type === "task";
@@ -74,6 +114,7 @@ export function PublisherModal({ open, onClose }: Props) {
     setTaskRequirements("");
     setError("");
     setSuccess(false);
+    setShowStanceEmoji(false);
   };
 
   const handleClose = () => {
@@ -81,12 +122,19 @@ export function PublisherModal({ open, onClose }: Props) {
     onClose();
   };
 
+  const isStance = type === "stance";
+  const effectiveTitle = isStance ? (content.trim().slice(0, 80) || "观点") : title;
+
   const handleSubmit = async () => {
-    if (!title.trim() || !content.trim()) {
+    if (!content.trim()) {
       setError(t("publisher.errorFillRequired"));
       return;
     }
-    if (title.length > TITLE_MAX || content.length > CONTENT_MAX) {
+    if (!isStance && !title.trim()) {
+      setError(t("publisher.errorFillRequired"));
+      return;
+    }
+    if (effectiveTitle.length > TITLE_MAX || content.length > CONTENT_MAX) {
       setError(t("publisher.errorFillRequired"));
       return;
     }
@@ -176,7 +224,7 @@ export function PublisherModal({ open, onClose }: Props) {
       }
       const payload: Record<string, unknown> = {
         type: type || "stance",
-        title: title.trim().slice(0, TITLE_MAX),
+        title: effectiveTitle.slice(0, TITLE_MAX),
         content: content.trim().slice(0, CONTENT_MAX),
         tags: tagsStr.split(/[,，\s]+/).filter(Boolean).slice(0, 20),
         media_urls: mediaUrls,
@@ -217,11 +265,33 @@ export function PublisherModal({ open, onClose }: Props) {
 
   if (!open) return null;
 
+  const hasDid = !!profileId;
+  if (!hasDid) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" onClick={handleClose}>
+        <div
+          className="flex w-full max-w-lg flex-col rounded-t-2xl border-t border-foreground/10 bg-background p-6 sm:rounded-2xl sm:border"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground">{t("community.publish")}</h2>
+            <button type="button" onClick={handleClose} className="text-foreground/60 hover:text-foreground text-xl leading-none">×</button>
+          </div>
+          <p className="text-sm text-foreground/80">{t("profile.publishNeedDid")}</p>
+          <Link href="/me" className="mt-4 inline-block rounded-full border border-accent bg-accent/10 px-4 py-2 text-center text-sm font-semibold text-accent hover:bg-accent hover:text-black" onClick={handleClose}>
+            前往个人中心
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" onClick={handleClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-0 sm:p-4" onClick={handleClose}>
       <div
-        className="flex w-full max-w-lg flex-col rounded-t-2xl border-t border-foreground/10 bg-background sm:rounded-2xl sm:border max-h-[88vh]"
+        className="flex w-full max-w-lg flex-col rounded-t-2xl border-t border-foreground/10 bg-background sm:rounded-2xl sm:border max-h-[85vh] sm:max-h-[88vh] mt-auto sm:mt-0"
         onClick={(e) => e.stopPropagation()}
+        style={{ maxHeight: "min(85vh, calc(100vh - 2rem))" }}
       >
         <div className="shrink-0 p-4 pb-0 sm:p-6 sm:pb-0">
           <div className="mb-4 flex items-center justify-between">
@@ -232,7 +302,7 @@ export function PublisherModal({ open, onClose }: Props) {
           </div>
         </div>
         <div
-          className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-6 sm:px-6 sm:pb-6"
+          className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-24 sm:px-6 sm:pb-6"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
         {success ? (
@@ -270,27 +340,63 @@ export function PublisherModal({ open, onClose }: Props) {
                 {t("publisher.back")}
               </button>
             </div>
+            {!isStance && (
+              <div className="mb-2">
+                <label className="mb-1 block text-xs text-foreground/70">{t("publisher.title")} *</label>
+                <input
+                  placeholder={t("publisher.title")}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value.slice(0, TITLE_MAX))}
+                  maxLength={TITLE_MAX}
+                  className="w-full rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50"
+                />
+                <p className="mt-0.5 text-right text-[10px] text-foreground/40">{title.length}/{TITLE_MAX}</p>
+              </div>
+            )}
             <div className="mb-2">
-              <label className="mb-1 block text-xs text-foreground/70">{t("publisher.title")} *</label>
-              <input
-                placeholder={t("publisher.title")}
-                value={title}
-                onChange={(e) => setTitle(e.target.value.slice(0, TITLE_MAX))}
-                maxLength={TITLE_MAX}
-                className="w-full rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50"
-              />
-              <p className="mt-0.5 text-right text-[10px] text-foreground/40">{title.length}/{TITLE_MAX}</p>
-            </div>
-            <div className="mb-2">
-              <label className="mb-1 block text-xs text-foreground/70">{t("publisher.content")} *（简介）</label>
+              <label className="mb-1 block text-xs text-foreground/70">{isStance ? "内容" : t("publisher.content") + " *（简介）"}</label>
               <textarea
-                placeholder={t("publisher.content")}
+                placeholder={isStance ? "分享你的观点…" : t("publisher.content")}
                 value={content}
                 onChange={(e) => setContent(e.target.value.slice(0, CONTENT_MAX))}
                 maxLength={CONTENT_MAX}
-                rows={5}
+                rows={isStance ? 4 : 5}
                 className="w-full resize-none rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50"
               />
+              {isStance && (
+                <>
+                  {showStanceEmoji && (
+                    <div className="mt-2 max-h-28 overflow-y-auto rounded-lg border border-foreground/10 bg-black/40 p-2">
+                      <div className="flex flex-wrap gap-1">
+                        {STANCE_EMOJIS.map((e) => (
+                          <button
+                            key={e}
+                            type="button"
+                            className="rounded p-1 text-lg leading-none hover:bg-foreground/10"
+                            onClick={() => {
+                              setContent((s) => (s + e).slice(0, CONTENT_MAX));
+                              setShowStanceEmoji(false);
+                            }}
+                          >
+                            {e}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-foreground/10 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowStanceEmoji((v) => !v)}
+                      className="rounded-lg border border-foreground/20 p-2 text-foreground/70 hover:bg-foreground/10"
+                      title="表情"
+                    >
+                      😀
+                    </button>
+                    <StanceMediaButtons mediaUrlsStr={mediaUrlsStr} setMediaUrlsStr={setMediaUrlsStr} />
+                  </div>
+                </>
+              )}
               <p className="mt-0.5 text-right text-[10px] text-foreground/40">{content.length}/{CONTENT_MAX}</p>
             </div>
 
@@ -513,19 +619,24 @@ export function PublisherModal({ open, onClose }: Props) {
               </div>
             )}
 
-            <input
-              placeholder={t("publisher.tags")}
-              value={tagsStr}
-              onChange={(e) => setTagsStr(e.target.value)}
-              className="mb-2 w-full rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50"
-            />
-            <textarea
-              placeholder={t("publisher.mediaUrls")}
-              value={mediaUrlsStr}
-              onChange={(e) => setMediaUrlsStr(e.target.value)}
-              rows={2}
-              className="mb-4 w-full resize-none rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50"
-            />
+            {!isStance && (
+              <>
+                <input
+                  placeholder={t("publisher.tags")}
+                  value={tagsStr}
+                  onChange={(e) => setTagsStr(e.target.value)}
+                  className="mb-2 w-full rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50"
+                />
+                <textarea
+                  placeholder={t("publisher.mediaUrls")}
+                  value={mediaUrlsStr}
+                  onChange={(e) => setMediaUrlsStr(e.target.value)}
+                  rows={2}
+                  className="mb-4 w-full resize-none rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50"
+                />
+              </>
+            )}
+            {isStance && <div className="mb-4" />}
             {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
             <div className="flex justify-end gap-2">
               <button

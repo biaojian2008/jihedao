@@ -77,9 +77,13 @@ export function DmInbox() {
     if (ready && authenticated && user?.id) {
       return (
         <div className="space-y-3 rounded-xl border border-foreground/10 bg-black/40 p-4">
-          <p className="text-sm text-foreground/70">
-            您已登录，请先同步用户档案以使用交流。
-          </p>
+          <p className="text-sm text-foreground/70">{t("profile.dmNeedDid")}</p>
+          <Link
+            href="/me"
+            className="inline-block rounded-full border border-accent bg-accent/10 px-4 py-2 text-center text-xs font-semibold text-accent hover:bg-accent hover:text-black"
+          >
+            前往个人中心
+          </Link>
           <button
             type="button"
             disabled={syncing}
@@ -110,7 +114,12 @@ export function DmInbox() {
         </div>
       );
     }
-    return <p className="text-sm text-foreground/60">{t("dm.needLogin")}</p>;
+    return (
+      <div className="space-y-2 rounded-xl border border-foreground/10 bg-black/40 p-4">
+        <p className="text-sm text-foreground/70">{t("dm.needLogin")}</p>
+        <p className="text-[11px] text-foreground/50">交流需先登录并同步 DID（个人中心）。</p>
+      </div>
+    );
   }
 
   if (withUserId && creating) {
