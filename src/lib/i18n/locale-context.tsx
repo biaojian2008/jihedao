@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import { messages, type Locale } from "./messages";
 
 const COOKIE_NAME = "jihe_locale";
@@ -42,6 +43,7 @@ const defaultValue: LocaleContextValue = {
 const LocaleContext = createContext<LocaleContextValue>(defaultValue);
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [locale, setLocaleState] = useState<Locale>("zh");
   const [mounted, setMounted] = useState(false);
 
@@ -53,8 +55,8 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   const setLocale = useCallback((next: Locale) => {
     setLocaleState(next);
     setLocaleCookie(next);
-    // 暂不调用 router.refresh()，避免整页无法加载；切换语言后手动刷新页面可更新首页/日志等多语言正文
-  }, []);
+    router.refresh();
+  }, [router]);
 
   const t = useCallback(
     (key: string) => {

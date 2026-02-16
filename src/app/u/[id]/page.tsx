@@ -47,7 +47,7 @@ export default async function UserProfilePage({ params }: Props) {
         display_name: p.display_name ?? "匿名",
         bio: p.bio,
         wallet_address: p.wallet_address,
-        fid: p.fid,
+        fid: p.fid != null ? String(p.fid) : null,
         custom_did: (p as { custom_did?: string | null }).custom_did ?? null,
         avatar_url: p.avatar_url,
         credit_score: (p.credit_score as number) ?? 50,

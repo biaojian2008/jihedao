@@ -4,16 +4,16 @@
  * - 非 Farcaster：可自定义 did:jihe:{handle}，handle 需全局唯一（前端校验 + API 查重）
  */
 
-/** Farcaster 标准：did:farcaster:<fid>，fid 为数字 */
-export function getDisplayDid(fid: string | null, customDid: string | null): string {
-  if (fid != null && fid.trim() !== "") {
-    const trimmed = fid.trim();
-    if (trimmed.startsWith("did:")) return trimmed;
-    return `did:farcaster:${trimmed}`;
+/** Farcaster 标准：did:farcaster:<fid>；fid 可能为数字或字符串（DB/API 返回不一） */
+export function getDisplayDid(fid: string | number | null | undefined, customDid: string | null | undefined): string {
+  const fidStr = fid != null ? String(fid).trim() : "";
+  if (fidStr !== "") {
+    if (fidStr.startsWith("did:")) return fidStr;
+    return `did:farcaster:${fidStr}`;
   }
-  if (customDid != null && customDid.trim() !== "") {
-    const h = customDid.trim().toLowerCase();
-    return `did:jihe:${h}`;
+  const customStr = customDid != null ? String(customDid).trim() : "";
+  if (customStr !== "") {
+    return `did:jihe:${customStr.toLowerCase()}`;
   }
   return "";
 }

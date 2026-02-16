@@ -68,6 +68,39 @@ git push -u origin main
 
 ---
 
+## 三、登录方式（微信 / Google / 邮箱）
+
+### 微信登录
+
+1. 在 [微信开放平台](https://open.weixin.qq.com/) 注册并创建**网站应用**，获取 **AppID** 和 **AppSecret**。
+2. 在 Vercel 和本地 `.env.local` 中配置：
+   - `AUTH_WECHAT_APP_ID` = 你的 AppID  
+   - `AUTH_WECHAT_APP_SECRET` = 你的 AppSecret  
+   - `NEXTAUTH_SECRET` = 随机字符串（如 `openssl rand -base64 32` 生成）  
+   - `NEXTAUTH_URL` = 你的站点地址（如 `https://jihedao.xyz`，本地开发可为 `http://localhost:3000`）
+3. 微信开放平台里把**授权回调域**设成你的域名（如 `jihedao.xyz`），不要带 `http://` 或路径。
+4. 若仍无法登录：检查回调域是否与 NEXTAUTH_URL 一致、环境变量是否在 Vercel 中保存并 Redeploy。
+
+### Google 登录
+
+1. 在 [Google Cloud Console](https://console.cloud.google.com/) 创建项目 → **API 和服务** → **凭据** → **创建凭据** → **OAuth 2.0 客户端 ID**，应用类型选 **Web 应用**，已授权的重定向 URI 填：`https://你的域名/api/auth/callback/google`（本地可加 `http://localhost:3000/api/auth/callback/google`）。
+2. 在环境变量中配置：
+   - `AUTH_GOOGLE_CLIENT_ID`  
+   - `AUTH_GOOGLE_CLIENT_SECRET`
+3. 保存并重新部署后，登录下拉菜单中会出现「Google」选项。
+
+### 邮箱登录
+
+当前**邮箱 / 钱包**登录由 **Privy** 提供（见 `.env.local` 中的 `NEXT_PUBLIC_PRIVY_APP_ID`）。无需额外 NextAuth 配置，点击「邮箱 / 钱包」即可使用 Privy 的邮箱或钱包登录。
+
+---
+
+## 四、翻译服务
+
+翻译接口会先请求 LibreTranslate（可配置 `LIBRETRANSLATE_URL`），失败时自动回退到 **MyMemory** 免费 API，一般能保证可用。若需自建，可部署 [LibreTranslate](https://github.com/LibreTranslate/LibreTranslate) 并设置 `LIBRETRANSLATE_URL`。
+
+---
+
 ## 注意
 
 - **不要**把 `.env.local` 提交到 GitHub（项目已用 `.gitignore` 忽略 `.env*`）

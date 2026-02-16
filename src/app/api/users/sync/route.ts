@@ -1,13 +1,19 @@
 /**
  * Privy / 微信登录后同步 user_profiles
  * POST body: { privy_user_id? } 或 { wechat_openid?, display_name?, avatar_url? }
- * 返回: { id } 对应用户档案 id
+ * 返回: { id } 对应用户档案 id；失败时返回 { error, hint? }
+ * 使用 SUPABASE_SERVICE_ROLE_KEY 时 bypass RLS，避免匿名写入被拒
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const key = serviceKey || anonKey;
+const rlsHint =
+  !serviceKey &&
+  "若报 RLS/策略错误，请在 .env.local 和 Vercel 中配置 SUPABASE_SERVICE_ROLE_KEY（Supabase 项目 Settings → API → service_role，长 JWT）。";
 
 type Body =
   | {
@@ -15,7 +21,7 @@ type Body =
       wallet_address?: string;
       display_name?: string;
       avatar_url?: string;
-      fid?: string;
+      fid?: string | number;
     }
   | {
       wechat_openid: string;
@@ -38,6 +44,9 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createClient(url, key);
+  const hint = typeof rlsHint === "string" ? rlsHint : undefined;
+  const err = (message: string, status: number, h?: string) =>
+    NextResponse.json({ error: message, ...(h && { hint: h }) }, { status });
 
   if ("wechat_openid" in body && body.wechat_openid) {
     const { wechat_openid, display_name, avatar_url } = body;
@@ -61,7 +70,7 @@ export async function POST(request: NextRequest) {
         .select("id")
         .single();
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return err(error.message, 500, hint);
       }
       return NextResponse.json({ id: data.id });
     }
@@ -78,7 +87,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return err(error.message, 500, hint);
     }
     return NextResponse.json({ id: data.id });
   }
@@ -90,7 +99,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { privy_user_id, wallet_address, display_name, avatar_url, fid } = body;
+  const { privy_user_id, wallet_address, display_name, avatar_url, fid: rawFid } = body;
+  const fid =
+    rawFid != null && rawFid !== ""
+      ? String(typeof rawFid === "number" ? rawFid : rawFid)
+      : null;
 
   const { data: existing } = await supabase
     .from("user_profiles")
@@ -98,13 +111,13 @@ export async function POST(request: NextRequest) {
     .eq("privy_user_id", privy_user_id)
     .single();
 
-  const updates = {
-    ...(wallet_address != null && { wallet_address: wallet_address || null }),
-    ...(display_name != null && { display_name: display_name || null }),
-    ...(avatar_url != null && { avatar_url: avatar_url || null }),
-    ...(fid != null && { fid: fid || null }),
+  const updates: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
   };
+  if (wallet_address !== undefined) updates.wallet_address = wallet_address || null;
+  if (display_name !== undefined) updates.display_name = display_name || null;
+  if (avatar_url !== undefined) updates.avatar_url = avatar_url || null;
+  if (rawFid !== undefined) updates.fid = fid;
 
   if (existing) {
     const { data, error } = await supabase
@@ -114,7 +127,7 @@ export async function POST(request: NextRequest) {
       .select("id")
       .single();
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return err(error.message, 500, hint);
     }
     return NextResponse.json({ id: data.id });
   }
@@ -126,14 +139,14 @@ export async function POST(request: NextRequest) {
       wallet_address: wallet_address || null,
       display_name: display_name || null,
       avatar_url: avatar_url || null,
-      fid: fid || null,
+      fid,
       credit_score: 50,
     })
     .select("id")
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return err(error.message, 500, hint);
   }
   return NextResponse.json({ id: data.id });
 }

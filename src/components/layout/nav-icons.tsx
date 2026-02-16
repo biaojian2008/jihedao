@@ -33,14 +33,16 @@ export function IconCommunity({ className }: { className?: string }) {
   );
 }
 
-/** 成员：名片/列表（多人头像排） */
+/** 成员：名片/通讯录（与社区“人群”区分） */
 export function IconMembers({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="8" cy="8" r="3.5" />
-      <path d="M2 20c0-2.5 2-4 6-4s6 1.5 6 4" />
-      <circle cx="17" cy="9" r="2.5" />
-      <path d="M21 19c0-1.5-1.2-2.8-3-3.2" />
+      <rect x="2" y="3" width="20" height="14" rx="2" />
+      <path d="M8 7v.01" />
+      <path d="M8 11v.01" />
+      <path d="M8 15v.01" />
+      <path d="M14 7h4" />
+      <path d="M14 11h4" />
     </svg>
   );
 }

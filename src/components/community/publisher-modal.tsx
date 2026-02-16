@@ -39,11 +39,19 @@ export function PublisherModal({ open, onClose }: Props) {
   const [details, setDetails] = useState("");
   const [returnsDescription, setReturnsDescription] = useState("");
   const [repayWhen, setRepayWhen] = useState("");
+  const [productPrice, setProductPrice] = useState("");
+  const [courseFee, setCourseFee] = useState("");
+  const [courseSbtIssuer, setCourseSbtIssuer] = useState("");
+  const [taskLocation, setTaskLocation] = useState("");
+  const [taskStartEnd, setTaskStartEnd] = useState("");
+  const [taskRequirements, setTaskRequirements] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  const isProjectOrTask = type === "project" || type === "task";
+  const isProject = type === "project";
+  const isTask = type === "task";
+  const isProjectOrTask = isProject || isTask;
 
   const reset = () => {
     setStep("type");
@@ -58,6 +66,12 @@ export function PublisherModal({ open, onClose }: Props) {
     setDetails("");
     setReturnsDescription("");
     setRepayWhen("");
+    setProductPrice("");
+    setCourseFee("");
+    setCourseSbtIssuer("");
+    setTaskLocation("");
+    setTaskStartEnd("");
+    setTaskRequirements("");
     setError("");
     setSuccess(false);
   };
@@ -76,7 +90,7 @@ export function PublisherModal({ open, onClose }: Props) {
       setError(t("publisher.errorFillRequired"));
       return;
     }
-    if (isProjectOrTask) {
+    if (isProject) {
       const coll = Number(authorCollateral) || 0;
       const freeze = Number(participantFreeze) || 0;
       if (coll <= 0) {
@@ -100,6 +114,34 @@ export function PublisherModal({ open, onClose }: Props) {
         return;
       }
     }
+    if (type === "product") {
+      const price = Number(productPrice);
+      if (price < 0 || !productPrice.trim()) {
+        setError(t("publisher.priceJihe") + " 必填且 ≥ 0");
+        return;
+      }
+    }
+    if (type === "course") {
+      const fee = Number(courseFee);
+      if (fee < 0 || !courseFee.trim()) {
+        setError(t("publisher.courseFeeJihe") + " 必填且 ≥ 0");
+        return;
+      }
+    }
+    if (isTask) {
+      if (!returnsDescription.trim()) {
+        setError(t("publisher.taskReward") + " 必填");
+        return;
+      }
+      if (!expectedDuration.trim()) {
+        setError(t("publisher.expectedDuration") + " 必填");
+        return;
+      }
+      if (!details.trim()) {
+        setError(t("publisher.taskWhat") + " 必填");
+        return;
+      }
+    }
     const authorId = profileId ?? process.env.NEXT_PUBLIC_DEFAULT_AUTHOR_ID;
     const privyId = authenticated && user?.id ? user.id : null;
     if (!authorId && !privyId) {
@@ -113,16 +155,35 @@ export function PublisherModal({ open, onClose }: Props) {
         .split(/\r?\n/)
         .map((u) => u.trim())
         .filter((u) => u && /^https?:\/\//.test(u));
+      let finalDetails = details.trim().slice(0, 5000);
+      let finalAuthorCollateral = Number(authorCollateral) || 0;
+      let finalParticipantFreeze = Number(participantFreeze) || 0;
+      if (type === "product") {
+        finalAuthorCollateral = Number(productPrice) || 0;
+      }
+      if (type === "course") {
+        finalParticipantFreeze = Number(courseFee) || 0;
+        if (courseSbtIssuer.trim()) {
+          finalDetails = (finalDetails ? finalDetails + "\n\n" : "") + "SBT铸造者: " + courseSbtIssuer.trim().slice(0, 200);
+        }
+      }
+      if (type === "task") {
+        const parts: string[] = [];
+        if (taskLocation.trim()) parts.push("地点: " + taskLocation.trim().slice(0, 200));
+        if (taskStartEnd.trim()) parts.push("时间: " + taskStartEnd.trim().slice(0, 200));
+        if (taskRequirements.trim()) parts.push("要求: " + taskRequirements.trim().slice(0, 1000));
+        if (parts.length) finalDetails = (finalDetails ? finalDetails + "\n\n" : "") + parts.join("\n");
+      }
       const payload: Record<string, unknown> = {
         type: type || "stance",
         title: title.trim().slice(0, TITLE_MAX),
         content: content.trim().slice(0, CONTENT_MAX),
         tags: tagsStr.split(/[,，\s]+/).filter(Boolean).slice(0, 20),
         media_urls: mediaUrls,
-        author_collateral: Number(authorCollateral) || 0,
-        participant_freeze: Number(participantFreeze) || 0,
+        author_collateral: finalAuthorCollateral,
+        participant_freeze: finalParticipantFreeze,
         expected_duration: expectedDuration.trim().slice(0, 200),
-        details: details.trim().slice(0, 5000),
+        details: finalDetails,
         returns_description: returnsDescription.trim().slice(0, 2000),
         repay_when: repayWhen.trim() || t("publisher.repayDefault"),
       };
@@ -159,7 +220,7 @@ export function PublisherModal({ open, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" onClick={handleClose}>
       <div
-        className="w-full max-w-lg rounded-t-2xl border-t border-foreground/10 bg-background p-6 sm:rounded-2xl sm:border sm:max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg rounded-t-2xl border-t border-foreground/10 bg-background p-6 sm:rounded-2xl sm:border max-h-[88vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -228,12 +289,13 @@ export function PublisherModal({ open, onClose }: Props) {
               <p className="mt-0.5 text-right text-[10px] text-foreground/40">{content.length}/{CONTENT_MAX}</p>
             </div>
 
-            {(type === "project" || type === "task" || type === "product" || type === "course") && (
+            {/* 项目：抵押、冻结、时长、具体内容、收益、归还 */}
+            {type === "project" && (
               <div className="mb-3 space-y-2 rounded-lg border border-accent/30 bg-accent/5 p-3">
-                <p className="text-xs font-medium text-accent">抵押与冻结（项目/任务必填）</p>
+                <p className="text-xs font-medium text-accent">抵押与冻结（项目必填）</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.authorCollateral")}{isProjectOrTask ? " *" : ""}</label>
+                <div>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.authorCollateral")} *</label>
                     <input
                       type="number"
                       min="0"
@@ -245,7 +307,7 @@ export function PublisherModal({ open, onClose }: Props) {
                     />
                   </div>
                   <div>
-                    <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.participantFreeze")}{isProjectOrTask ? " *" : ""}</label>
+                    <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.participantFreeze")} *</label>
                     <input
                       type="number"
                       min="0"
@@ -258,7 +320,7 @@ export function PublisherModal({ open, onClose }: Props) {
                   </div>
                 </div>
                 <div>
-                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.expectedDuration")}{isProjectOrTask ? " *" : ""}</label>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.expectedDuration")} *</label>
                   <input
                     placeholder="例：2 周"
                     value={expectedDuration}
@@ -267,7 +329,7 @@ export function PublisherModal({ open, onClose }: Props) {
                   />
                 </div>
                 <div>
-                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.details")}{isProjectOrTask ? " *" : ""}（具体做什么）</label>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.details")} *（具体做什么）</label>
                   <textarea
                     placeholder="详细说明参与者需要完成的工作"
                     value={details}
@@ -277,7 +339,7 @@ export function PublisherModal({ open, onClose }: Props) {
                   />
                 </div>
                 <div>
-                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.returnsDescription")}{isProjectOrTask ? " *" : ""}</label>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.returnsDescription")} *</label>
                   <textarea
                     placeholder="参与者的收益如何"
                     value={returnsDescription}
@@ -292,6 +354,154 @@ export function PublisherModal({ open, onClose }: Props) {
                     placeholder={t("publisher.repayDefault")}
                     value={repayWhen}
                     onChange={(e) => setRepayWhen(e.target.value.slice(0, 200))}
+                    className="w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 商品：价格（济和币）、图片用下方「图片链接」 */}
+            {type === "product" && (
+              <div className="mb-3 space-y-2 rounded-lg border border-foreground/15 bg-black/20 p-3">
+                <div>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.priceJihe")} *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="0"
+                    value={productPrice}
+                    onChange={(e) => setProductPrice(e.target.value)}
+                    className="w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.priceSpec")}</label>
+                  <input
+                    placeholder={t("publisher.priceSpecPlaceholder")}
+                    value={details}
+                    onChange={(e) => setDetails(e.target.value.slice(0, 500))}
+                    className="w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 课程：费用（济和币）、谁铸造 SBT、大纲；图片用下方「图片链接」 */}
+            {type === "course" && (
+              <div className="mb-3 space-y-2 rounded-lg border border-foreground/15 bg-black/20 p-3">
+                <div>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.courseFeeJihe")} *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="0"
+                    value={courseFee}
+                    onChange={(e) => setCourseFee(e.target.value)}
+                    className="w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.courseSbtIssuer")}</label>
+                  <input
+                    placeholder={t("publisher.courseSbtIssuerPlaceholder")}
+                    value={courseSbtIssuer}
+                    onChange={(e) => setCourseSbtIssuer(e.target.value.slice(0, 200))}
+                    className="w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.courseDuration")}</label>
+                  <input
+                    placeholder={t("publisher.courseDurationPlaceholder")}
+                    value={expectedDuration}
+                    onChange={(e) => setExpectedDuration(e.target.value.slice(0, 200))}
+                    className="w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.syllabus")}</label>
+                  <textarea
+                    placeholder={t("publisher.syllabusPlaceholder")}
+                    value={details}
+                    onChange={(e) => setDetails(e.target.value.slice(0, 2000))}
+                    rows={3}
+                    className="w-full resize-none rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 任务：奖励、预计时长、地点、开始结束时间、做什么、要求、参加者抵押可选；图片用下方「图片链接」 */}
+            {type === "task" && (
+              <div className="mb-3 space-y-2 rounded-lg border border-foreground/15 bg-black/20 p-3">
+                <div>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.taskReward")} *（济和币或 SBT）</label>
+                  <textarea
+                    placeholder={t("publisher.taskRewardPlaceholder")}
+                    value={returnsDescription}
+                    onChange={(e) => setReturnsDescription(e.target.value.slice(0, 2000))}
+                    rows={2}
+                    className="w-full resize-none rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.expectedDuration")} *</label>
+                  <input
+                    placeholder="例：2 周"
+                    value={expectedDuration}
+                    onChange={(e) => setExpectedDuration(e.target.value.slice(0, 200))}
+                    className="w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.taskLocation")}</label>
+                  <input
+                    placeholder={t("publisher.taskLocationPlaceholder")}
+                    value={taskLocation}
+                    onChange={(e) => setTaskLocation(e.target.value.slice(0, 200))}
+                    className="w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.taskStartEnd")}</label>
+                  <input
+                    placeholder={t("publisher.taskStartEndPlaceholder")}
+                    value={taskStartEnd}
+                    onChange={(e) => setTaskStartEnd(e.target.value.slice(0, 200))}
+                    className="w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.taskWhat")} *</label>
+                  <textarea
+                    placeholder={t("publisher.taskWhatPlaceholder")}
+                    value={details}
+                    onChange={(e) => setDetails(e.target.value.slice(0, 5000))}
+                    rows={3}
+                    className="w-full resize-none rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.taskRequirements")}</label>
+                  <textarea
+                    placeholder={t("publisher.taskRequirementsPlaceholder")}
+                    value={taskRequirements}
+                    onChange={(e) => setTaskRequirements(e.target.value.slice(0, 1000))}
+                    rows={2}
+                    className="w-full resize-none rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.participantFreeze")}（可选）</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="0"
+                    value={participantFreeze}
+                    onChange={(e) => setParticipantFreeze(e.target.value)}
                     className="w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
                   />
                 </div>

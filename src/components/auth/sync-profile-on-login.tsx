@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useSession } from "next-auth/react";
 import { getCurrentProfileId, setCurrentProfileId } from "@/lib/current-user";
+import { getFarcasterFromPrivyUser } from "@/lib/privy-farcaster";
 
 /**
  * Privy 或 微信（NextAuth）登录成功后，同步 user_profiles 并保存 profile id
@@ -11,7 +12,6 @@ import { getCurrentProfileId, setCurrentProfileId } from "@/lib/current-user";
 export function SyncProfileOnLogin() {
   const { ready, authenticated, user } = usePrivy();
   const { data: session, status } = useSession();
-  const privySynced = useRef(false);
   const lastSyncedKey = useRef<string | null>(null);
   const wechatSynced = useRef(false);
 
@@ -20,37 +20,22 @@ export function SyncProfileOnLogin() {
     if (id) setCurrentProfileId(id);
   }, []);
 
-  const u = user as {
-    farcaster?: { fid?: number | null; displayName?: string | null; pfp?: string | null };
-    linkedAccounts?: Array<{ type?: string; fid?: number; displayName?: string | null; pfp?: string | null }>;
-    name?: string;
-    avatar?: string;
-    wallet?: { address?: string };
-  } | null;
-  const farcasterFid = u?.farcaster?.fid ?? u?.linkedAccounts?.find((a) => a.type === "farcaster")?.fid;
+  const fc = getFarcasterFromPrivyUser(user as Parameters<typeof getFarcasterFromPrivyUser>[0]);
+  const farcasterFid = fc?.fid;
 
-  useEffect(() => {
-    if (!ready || !authenticated || !user) return;
-    const usr = user as {
-      farcaster?: { fid?: number | null; displayName?: string | null; pfp?: string | null };
-      linkedAccounts?: Array<{ type?: string; fid?: number; displayName?: string | null; pfp?: string | null }>;
-      name?: string;
-      avatar?: string;
-      wallet?: { address?: string };
-    };
-    const fc = usr.farcaster ?? usr.linkedAccounts?.find((a) => a.type === "farcaster");
-    const fid = fc?.fid != null ? String(fc.fid) : undefined;
-    const display_name = usr.name ?? fc?.displayName ?? undefined;
-    const avatar_url = usr.avatar ?? fc?.pfp ?? undefined;
+  const runSync = (overrideFid?: string) => {
+    if (!user) return;
+    const fid = overrideFid ?? fc?.fid ?? undefined;
+    const display_name = fc?.display_name ?? undefined;
+    const avatar_url = fc?.avatar_url ?? undefined;
     const wallet =
       (user as { wallet?: { address?: string } }).wallet?.address ??
       (user as { linkedAccounts?: { type?: string; address?: string }[] }).linkedAccounts?.find(
         (a) => a.type === "wallet"
       )?.address;
     const key = `${user.id}:${fid ?? "nofid"}`;
-    if (lastSyncedKey.current === key) return;
     lastSyncedKey.current = key;
-    fetch("/api/users/sync", {
+    return fetch("/api/users/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -63,14 +48,41 @@ export function SyncProfileOnLogin() {
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (data?.id) {
-          setCurrentProfileId(data.id);
-          privySynced.current = true;
-        }
+        if (data?.id) setCurrentProfileId(data.id);
+        return data;
       })
       .catch(() => {
         lastSyncedKey.current = null;
       });
+  };
+
+  useEffect(() => {
+    if (!ready || !authenticated || !user) return;
+    const fid = fc?.fid ?? undefined;
+    const key = `${user.id}:${fid ?? "nofid"}`;
+    if (lastSyncedKey.current === key) return;
+    runSync();
+  }, [ready, authenticated, user, fc?.fid, fc?.display_name, fc?.avatar_url]);
+
+  // Farcaster 可能晚于首次 sync 才加载：若上次是以 nofid 同步的，延迟 1s、3s 各重试一次
+  useEffect(() => {
+    if (!ready || !authenticated || !user || !farcasterFid) return;
+    const keyWithFid = `${user.id}:${farcasterFid}`;
+    if (lastSyncedKey.current === keyWithFid) return;
+    const hadNoFid = lastSyncedKey.current === `${user.id}:nofid`;
+    if (!hadNoFid) return;
+    const t1 = setTimeout(() => {
+      if (lastSyncedKey.current === keyWithFid) return;
+      runSync(farcasterFid);
+    }, 1000);
+    const t2 = setTimeout(() => {
+      if (lastSyncedKey.current === keyWithFid) return;
+      runSync(farcasterFid);
+    }, 3000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [ready, authenticated, user, farcasterFid]);
 
   useEffect(() => {

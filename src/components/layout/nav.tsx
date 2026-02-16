@@ -19,20 +19,10 @@ const navKeys = [
 
 export function Nav() {
   const pathname = usePathname();
-  const { ready, authenticated, login, loginWithWechat, logout } = useAuth();
+  const { ready, authenticated, login, logout } = useAuth();
   const { locale, setLocale, t } = useLocale();
   const [loginOpen, setLoginOpen] = useState(false);
-  const [wechatSignInUrl, setWechatSignInUrl] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const base = window.location.origin;
-      setWechatSignInUrl(
-        `${base}/api/auth/signin/wechat?callbackUrl=${encodeURIComponent(base + "/")}`
-      );
-    }
-  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -95,15 +85,17 @@ export function Nav() {
             </Link>
           </div>
 
-          {/* 桌面：个人中心/登录；手机端不显示，底部栏有个人中心 */}
+          {/* 桌面：个人中心（仅图标）/登录；手机端不显示，底部栏有个人中心图标 */}
           {ready &&
             (authenticated ? (
               <div className="hidden md:flex items-center gap-2">
                 <Link
                   href="/me"
-                  className="rounded-full border border-foreground/20 px-3 py-1.5 text-xs"
+                  aria-label={t("nav.profile")}
+                  title={t("nav.profile")}
+                  className="flex items-center justify-center p-2 rounded-md transition hover:text-accent text-foreground/70"
                 >
-                  {t("nav.profile")}
+                  <NavIcon href="/me" className="h-5 w-5 shrink-0" />
                 </Link>
                 <button
                   type="button"
@@ -123,32 +115,10 @@ export function Nav() {
                   {t("nav.login")}
                 </button>
                 {loginOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-foreground/10 bg-background py-1 shadow-lg">
-                    {loginWithWechat && (
-                      wechatSignInUrl ? (
-                        <a
-                          href={wechatSignInUrl}
-                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs text-foreground hover:bg-foreground/5"
-                          onClick={() => setLoginOpen(false)}
-                        >
-                          <span className="text-[#07c160]">●</span>
-                          {t("nav.loginWechat")}
-                        </a>
-                      ) : (
-                        <button
-                          type="button"
-                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs text-foreground hover:bg-foreground/5"
-                          onClick={() => {
-                            setLoginOpen(false);
-                            const b = window.location.origin;
-                            window.location.href = `${b}/api/auth/signin/wechat?callbackUrl=${encodeURIComponent(b + "/")}`;
-                          }}
-                        >
-                          <span className="text-[#07c160]">●</span>
-                          {t("nav.loginWechat")}
-                        </button>
-                      )
-                    )}
+                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[200px] rounded-lg border border-foreground/10 bg-background py-1 shadow-lg">
+                    <p className="px-4 py-2 text-[10px] text-foreground/50 border-b border-foreground/10">
+                      若 Farcaster 一直转圈，可改用邮箱或钱包
+                    </p>
                     <button
                       type="button"
                       className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs text-foreground hover:bg-foreground/5"
@@ -157,7 +127,38 @@ export function Nav() {
                         login();
                       }}
                     >
-                      {t("nav.loginEmailWallet")}
+                      {t("nav.loginFarcaster")}
+                    </button>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs text-foreground hover:bg-foreground/5"
+                      onClick={() => {
+                        setLoginOpen(false);
+                        login();
+                      }}
+                    >
+                      {t("nav.loginEmail")}
+                    </button>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs text-foreground hover:bg-foreground/5"
+                      onClick={() => {
+                        setLoginOpen(false);
+                        login();
+                      }}
+                    >
+                      {t("nav.loginWallet")}
+                    </button>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs text-foreground hover:bg-foreground/5"
+                      onClick={() => {
+                        setLoginOpen(false);
+                        const base = typeof window !== "undefined" ? window.location.origin : "";
+                        window.location.href = `${base}/api/auth/signin/google?callbackUrl=${encodeURIComponent(base + "/")}`;
+                      }}
+                    >
+                      {t("nav.loginGoogle")}
                     </button>
                   </div>
                 )}

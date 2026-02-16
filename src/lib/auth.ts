@@ -1,13 +1,16 @@
 /**
- * NextAuth 配置（微信登录）
- * 与 Privy 并存：微信用户走 NextAuth session，其余走 Privy
+ * NextAuth 配置（微信、Google 登录）
+ * 与 Privy 并存：微信/Google 用户走 NextAuth session，其余走 Privy（邮箱/钱包）
  * 使用本地 WeChat 提供方（next-auth 官方包未包含 wechat）
  */
 import type { NextAuthOptions } from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
 import { WeChat } from "@/lib/wechat-provider";
 
 const wechatId = process.env.AUTH_WECHAT_APP_ID;
 const wechatSecret = process.env.AUTH_WECHAT_APP_SECRET;
+const googleId = process.env.AUTH_GOOGLE_CLIENT_ID;
+const googleSecret = process.env.AUTH_GOOGLE_CLIENT_SECRET;
 
 declare module "next-auth" {
   interface User {
@@ -28,18 +31,27 @@ declare module "next-auth/jwt" {
   }
 }
 
+const providers: NextAuthOptions["providers"] = [];
+if (wechatId && wechatSecret) {
+    providers.push(
+      WeChat({
+        clientId: wechatId,
+        clientSecret: wechatSecret,
+        platformType: "WebsiteApp",
+      })
+    );
+}
+if (googleId && googleSecret) {
+  providers.push(
+    GoogleProvider({
+      clientId: googleId,
+      clientSecret: googleSecret,
+    })
+  );
+}
+
 export const authOptions: NextAuthOptions = {
-  providers:
-    wechatId && wechatSecret
-      ? [
-          WeChat({
-            clientId: wechatId,
-            clientSecret: wechatSecret,
-            // 网站应用：扫码登录；公众号用 "OfficialAccount"
-            platformType: "WebsiteApp",
-          }),
-        ]
-      : [],
+  providers,
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   callbacks: {

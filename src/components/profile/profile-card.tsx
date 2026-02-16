@@ -9,6 +9,7 @@ import { useLocale } from "@/lib/i18n/locale-context";
 import { TranslateButton } from "@/components/translate-button";
 import { getDisplayDid } from "@/lib/did";
 import { getCurrentProfileId } from "@/lib/current-user";
+import { getFarcasterFromPrivyUser } from "@/lib/privy-farcaster";
 import { TransferModal } from "@/components/transfer/transfer-modal";
 
 type Profile = {
@@ -71,6 +72,7 @@ export function ProfileCard({ profile, userId }: Props) {
   const [savingDid, setSavingDid] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [syncingFarcaster, setSyncingFarcaster] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [showTransfer, setShowTransfer] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -82,14 +84,53 @@ export function ProfileCard({ profile, userId }: Props) {
     avatar?: string;
     wallet?: { address?: string };
   }) : null;
-  const farcaster = privyUser?.farcaster ?? privyUser?.linkedAccounts?.find((a) => a.type === "farcaster");
-  const canSyncFarcaster = isOwnProfile && !!privyUser?.id && !!farcaster;
+  const farcasterFields = privyUser ? getFarcasterFromPrivyUser(privyUser as Parameters<typeof getFarcasterFromPrivyUser>[0]) : null;
+  const canSyncFarcaster = isOwnProfile && !!privyUser?.id && !!farcasterFields?.fid;
+  const didAutoSyncFarcaster = useRef(false);
 
   useEffect(() => {
     setDisplayName(profile.display_name ?? "");
     setAvatarUrl(profile.avatar_url ?? "");
     setCustomDidInput(profile.custom_did ?? "");
   }, [profile.display_name, profile.avatar_url, profile.custom_did]);
+
+  // 本人且档案无 fid 但 Privy 有 Farcaster：自动同步一次，以便显示 DID 与头像/昵称
+  useEffect(() => {
+    if (!isOwnProfile || profile.fid || !farcasterFields?.fid || !privyUser?.id || didAutoSyncFarcaster.current)
+      return;
+    didAutoSyncFarcaster.current = true;
+    setSyncError(null);
+    const wallet =
+      (privyUser as { wallet?: { address?: string } }).wallet?.address ??
+      (privyUser as { linkedAccounts?: { type?: string; address?: string }[] }).linkedAccounts?.find(
+        (a) => a.type === "wallet"
+      )?.address;
+    fetch("/api/users/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        privy_user_id: privyUser.id,
+        wallet_address: wallet ?? undefined,
+        display_name: farcasterFields.display_name,
+        avatar_url: farcasterFields.avatar_url,
+        fid: farcasterFields.fid,
+      }),
+    })
+      .then(async (r) => {
+        if (r.ok) return r.json();
+        const data = await r.json().catch(() => ({}));
+        setSyncError([data?.error, data?.hint].filter(Boolean).join(" ") || `HTTP ${r.status}`);
+        didAutoSyncFarcaster.current = false;
+        return null;
+      })
+      .then((data) => {
+        if (data?.id) router.refresh();
+      })
+      .catch(() => {
+        setSyncError("网络请求失败");
+        didAutoSyncFarcaster.current = false;
+      });
+  }, [isOwnProfile, profile.fid, farcasterFields?.fid, farcasterFields?.display_name, farcasterFields?.avatar_url, privyUser, router]);
 
   const creditLabel =
     profile.credit_score >= 80
@@ -142,13 +183,12 @@ export function ProfileCard({ profile, userId }: Props) {
 
   const handleSyncFarcaster = async () => {
     if (!canSyncFarcaster || !privyUser) return;
+    setSyncError(null);
     setSyncingFarcaster(true);
     try {
-      const fid = farcaster?.fid != null ? String(farcaster.fid) : undefined;
-      const display_name = privyUser.name ?? farcaster?.displayName ?? undefined;
-      const avatar_url = privyUser.avatar ?? farcaster?.pfp ?? undefined;
+      const fc = getFarcasterFromPrivyUser(privyUser as Parameters<typeof getFarcasterFromPrivyUser>[0]);
       const wallet =
-        privyUser.wallet?.address ??
+        (privyUser as { wallet?: { address?: string } }).wallet?.address ??
         (privyUser as { linkedAccounts?: { type?: string; address?: string }[] }).linkedAccounts?.find(
           (a) => a.type === "wallet"
         )?.address;
@@ -158,12 +198,19 @@ export function ProfileCard({ profile, userId }: Props) {
         body: JSON.stringify({
           privy_user_id: privyUser.id,
           wallet_address: wallet ?? undefined,
-          display_name,
-          avatar_url,
-          fid,
+          display_name: fc?.display_name,
+          avatar_url: fc?.avatar_url,
+          fid: fc?.fid,
         }),
       });
-      if (res.ok) router.refresh();
+      if (res.ok) {
+        router.refresh();
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      setSyncError([data?.error, data?.hint].filter(Boolean).join(" ") || `HTTP ${res.status}`);
+    } catch {
+      setSyncError("网络请求失败");
     } finally {
       setSyncingFarcaster(false);
     }
@@ -276,9 +323,12 @@ export function ProfileCard({ profile, userId }: Props) {
           <dt className="text-foreground/50">{t("profile.did")}</dt>
           <dd>
             {profile.fid ? (
-              <span className="font-mono text-foreground break-all">{displayDid}</span>
+              <span className="font-mono text-foreground break-all" data-did="farcaster">{displayDid}</span>
             ) : isOwnProfile ? (
               <div>
+                {canSyncFarcaster && (
+                  <p className="mb-1.5 text-[11px] text-foreground/50">Farcaster 登录后将自动显示 did:farcaster:FID；若无显示请点击下方「从 Farcaster 同步」</p>
+                )}
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-foreground/70">did:jihe:</span>
                   <input
@@ -360,14 +410,21 @@ export function ProfileCard({ profile, userId }: Props) {
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         {canSyncFarcaster && (
-          <button
-            type="button"
-            onClick={handleSyncFarcaster}
-            disabled={syncingFarcaster}
-            className="rounded-full border border-foreground/30 bg-foreground/5 px-4 py-2 text-xs font-semibold text-foreground hover:bg-foreground/10 disabled:opacity-50"
-          >
-            {syncingFarcaster ? "同步中…" : "从 Farcaster 同步头像与昵称"}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={handleSyncFarcaster}
+              disabled={syncingFarcaster}
+              className="rounded-full border border-foreground/30 bg-foreground/5 px-4 py-2 text-xs font-semibold text-foreground hover:bg-foreground/10 disabled:opacity-50"
+            >
+              {syncingFarcaster ? "同步中…" : "从 Farcaster 同步头像与昵称"}
+            </button>
+            {syncError && (
+              <p className="w-full text-xs text-red-400 mt-1">
+                {syncError}
+              </p>
+            )}
+          </>
         )}
         {!isOwnProfile && (
           <>

@@ -9,7 +9,7 @@ export function HomeSearchButton() {
   return (
     <Link
       href="/community"
-      className="fixed bottom-20 left-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-foreground/20 bg-background/95 text-foreground shadow-lg backdrop-blur transition hover:border-accent/50 hover:text-accent md:bottom-6"
+      className="fixed bottom-20 left-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-black shadow-lg transition hover:opacity-90 md:bottom-6"
       title={t("community.search")}
       aria-label={t("community.search")}
     >

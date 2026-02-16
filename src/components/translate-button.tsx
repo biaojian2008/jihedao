@@ -34,12 +34,13 @@ export function TranslateButton({ text, className, display = "block" }: Props) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data?.error ?? "Translation failed");
+        const msg = data?.error ?? "Translation failed";
+        setError(msg === "Translation service unavailable" ? t("translate.unavailable") : msg);
         return;
       }
       setTranslated(typeof data.translatedText === "string" ? data.translatedText : "");
     } catch {
-      setError("Network error");
+      setError(t("translate.networkError"));
     } finally {
       setLoading(false);
     }

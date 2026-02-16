@@ -28,6 +28,11 @@ npm run dev
 
 浏览器打开 [http://localhost:3000](http://localhost:3000)。
 
+### 手机预览
+
+- **方式一（同一 WiFi）**：`npm run dev` 已使用 `--hostname 0.0.0.0`，本机在局域网可访问。在电脑上查看本机 IP（Windows：`ipconfig` 看「IPv4 地址」；Mac：系统设置 → 网络），手机连同一 WiFi 后，在浏览器打开 `http://<本机IP>:3000`，例如 `http://192.168.1.100:3000`。
+- **方式二（外网隧道）**：另开一个终端执行 `npm run tunnel`，会得到一个公网 URL（如 `https://xxx.loca.lt`），手机用该链接即可预览（首次可能需按提示点击「Click to Continue」）。
+
 ## 环境变量（Vercel / .env.local）
 
 | 变量 | 说明 |

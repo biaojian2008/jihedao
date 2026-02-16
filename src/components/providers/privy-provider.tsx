@@ -4,6 +4,7 @@ import { PrivyProvider as Privy, usePrivy } from "@privy-io/react-auth";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { AuthProvider } from "@/lib/auth-context";
 import { SyncProfileOnLogin } from "@/components/auth/sync-profile-on-login";
+import { getFarcasterFromPrivyUser } from "@/lib/privy-farcaster";
 
 const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID || "";
 
@@ -17,7 +18,7 @@ function PrivyAuthBridge({ children }: { children: React.ReactNode }) {
   const privy = usePrivy();
   const { data: session } = useSession();
   const byWechat = !privy.authenticated && !!session?.user?.openid;
-  // 始终视为 ready，避免 Privy/NextAuth 未就绪时整页无法加载
+  const fc = getFarcasterFromPrivyUser(privy.user as Parameters<typeof getFarcasterFromPrivyUser>[0]);
   const value = {
     ready: true,
     authenticated: privy.authenticated || !!session,
@@ -30,18 +31,9 @@ function PrivyAuthBridge({ children }: { children: React.ReactNode }) {
     user: privy.user
       ? {
           id: privy.user.id,
-          fid:
-            privy.user.farcaster?.fid != null
-              ? String(privy.user.farcaster.fid)
-              : undefined,
-          display_name:
-            (privy.user as { name?: string }).name ??
-            privy.user.farcaster?.displayName ??
-            undefined,
-          avatar_url:
-            (privy.user as { avatar?: string }).avatar ??
-            privy.user.farcaster?.pfp ??
-            undefined,
+          fid: fc?.fid,
+          display_name: fc?.display_name,
+          avatar_url: fc?.avatar_url,
         }
       : session?.user?.openid
         ? { id: session.user.openid }

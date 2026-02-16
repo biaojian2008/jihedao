@@ -24,7 +24,7 @@ export async function GET(
   const supabase = createClient(url, key);
   const { data: profile, error: profileError } = await supabase
     .from("user_profiles")
-    .select("id, display_name, bio, avatar_url, wallet_address, fid, custom_did, credit_score")
+    .select("id, display_name, bio, avatar_url, wallet_address, fid, custom_did, credit_score, jihe_coin_balance")
     .eq("id", id)
     .single();
   if (profileError || !profile) {
@@ -38,9 +38,15 @@ export async function GET(
     .select("id, name, icon_url, description, issued_by, issued_at")
     .eq("user_id", id)
     .order("issued_at", { ascending: false });
+  const normalizedBadges = (badges ?? []).map((b) => ({
+    name: b.name,
+    description: b.description ?? null,
+    icon_url: b.icon_url ?? null,
+  }));
   return NextResponse.json({
     ...profile,
-    badges: badges ?? [],
+    jihe_coin_balance: (profile as { jihe_coin_balance?: number }).jihe_coin_balance ?? 0,
+    badges: normalizedBadges,
   });
 }
 
