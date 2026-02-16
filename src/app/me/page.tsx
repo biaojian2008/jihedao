@@ -154,7 +154,7 @@ export default function MePage() {
           <div className="mt-3">
             <button
               type="button"
-              onClick={doSync}
+              onClick={() => doSync()}
               className="rounded-full border border-accent bg-accent/10 px-4 py-2 text-xs font-semibold text-accent hover:bg-accent hover:text-black"
             >
               重试同步
