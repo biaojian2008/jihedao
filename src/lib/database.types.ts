@@ -43,6 +43,7 @@ export interface Database {
           privy_user_id: string | null;
           wallet_address: string | null;
           fid: string | null;
+          custom_did: string | null;
           display_name: string | null;
           bio: string | null;
           avatar_url: string | null;

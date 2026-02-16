@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 import { PROFILE_ID_COOKIE } from "@/lib/current-user";
 import { validateCustomDidHandle, normalizeCustomDidInput } from "@/lib/did";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const key = serviceKey || anonKey;
 
 function getProfileIdFromRequest(req: NextRequest): string | null {
   const cookie = req.headers.get("cookie") ?? "";
@@ -80,7 +83,11 @@ export async function handlePatch(
     if (error.code === "23505") {
       return NextResponse.json({ error: "已占用", code: "DID_TAKEN" }, { status: 409 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message, hint: error.message.includes("custom_did") ? "若报 custom_didi 请检查 Supabase 表 user_profiles 列名为 custom_did" : undefined },
+      { status: 500 }
+    );
   }
+  revalidatePath(`/u/${id}`);
   return NextResponse.json(data);
 }

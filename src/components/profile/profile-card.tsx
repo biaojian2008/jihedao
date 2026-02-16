@@ -8,8 +8,9 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { TranslateButton } from "@/components/translate-button";
 import { getDisplayDid } from "@/lib/did";
-import { getCurrentProfileId } from "@/lib/current-user";
+import { getCurrentProfileId, setCurrentProfileId } from "@/lib/current-user";
 import { getFarcasterFromPrivyUser } from "@/lib/privy-farcaster";
+import { useAuth } from "@/lib/auth-context";
 import { TransferModal } from "@/components/transfer/transfer-modal";
 
 type Profile = {
@@ -61,6 +62,7 @@ export function ProfileCard({ profile, userId }: Props) {
   const { t } = useLocale();
   const router = useRouter();
   const privy = usePrivy();
+  const { logout } = useAuth();
   const isOwnProfile = getCurrentProfileId() === userId;
   const displayDid = getDisplayDid(profile.fid, profile.custom_did);
 
@@ -73,6 +75,7 @@ export function ProfileCard({ profile, userId }: Props) {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [syncingFarcaster, setSyncingFarcaster] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [showTransfer, setShowTransfer] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -85,7 +88,7 @@ export function ProfileCard({ profile, userId }: Props) {
     wallet?: { address?: string };
   }) : null;
   const farcasterFields = privyUser ? getFarcasterFromPrivyUser(privyUser as Parameters<typeof getFarcasterFromPrivyUser>[0]) : null;
-  const canSyncFarcaster = isOwnProfile && !!privyUser?.id && !!farcasterFields?.fid;
+  const canSyncFarcaster = isOwnProfile && !!privyUser?.id;
   const didAutoSyncFarcaster = useRef(false);
 
   useEffect(() => {
@@ -149,7 +152,12 @@ export function ProfileCard({ profile, userId }: Props) {
         credentials: "include",
         body: JSON.stringify({ display_name: displayName || null }),
       });
-      if (res.ok) router.refresh();
+      if (res.ok) {
+        router.refresh();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data?.error ?? (res.status === 401 ? "未识别到您的身份，请从个人中心进入后再试" : "保存失败"));
+      }
     } finally {
       setSaving(false);
     }
@@ -172,7 +180,7 @@ export function ProfileCard({ profile, userId }: Props) {
         return;
       }
       if (!res.ok) {
-        setDidError(data?.error ?? "Failed");
+        setDidError([data?.error, data?.hint].filter(Boolean).join(" ") || "Failed");
         return;
       }
       router.refresh();
@@ -182,7 +190,7 @@ export function ProfileCard({ profile, userId }: Props) {
   };
 
   const handleSyncFarcaster = async () => {
-    if (!canSyncFarcaster || !privyUser) return;
+    if (!isOwnProfile || !privyUser?.id) return;
     setSyncError(null);
     setSyncingFarcaster(true);
     try {
@@ -194,6 +202,7 @@ export function ProfileCard({ profile, userId }: Props) {
         )?.address;
       const res = await fetch("/api/users/sync", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           privy_user_id: privyUser.id,
@@ -204,6 +213,8 @@ export function ProfileCard({ profile, userId }: Props) {
         }),
       });
       if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (data?.id) setCurrentProfileId(data.id);
         router.refresh();
         return;
       }
@@ -219,6 +230,9 @@ export function ProfileCard({ profile, userId }: Props) {
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !isOwnProfile) return;
+    const prevPreview = avatarPreview;
+    const blobUrl = URL.createObjectURL(file);
+    setAvatarPreview(blobUrl);
     setUploadingAvatar(true);
     try {
       const form = new FormData();
@@ -230,10 +244,23 @@ export function ProfileCard({ profile, userId }: Props) {
       });
       if (!uploadRes.ok) {
         const err = await uploadRes.json().catch(() => ({}));
-        alert(err?.error ?? "Upload failed");
+        const msg = err?.error ?? "Upload failed";
+        if (uploadRes.status === 401) {
+          alert("无法识别您的身份（未登录或未同步档案）。请从底部「个人中心」进入并登录后再试。\n\n" + msg);
+        } else {
+          alert(msg);
+        }
         return;
       }
-      const { url } = await uploadRes.json();
+      const data = await uploadRes.json();
+      const url = data?.url;
+      if (!url) {
+        alert("上传成功但未返回图片地址");
+        return;
+      }
+      if (prevPreview) URL.revokeObjectURL(prevPreview);
+      setAvatarPreview(null);
+      setAvatarUrl(url);
       const patchRes = await fetch(`/api/users/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -241,23 +268,37 @@ export function ProfileCard({ profile, userId }: Props) {
         body: JSON.stringify({ avatar_url: url }),
       });
       if (patchRes.ok) {
-        setAvatarUrl(url);
         router.refresh();
+      } else {
+        const err = await patchRes.json().catch(() => ({}));
+        alert(err?.error ?? "头像已上传，但保存到档案失败，请刷新后重试");
       }
+    } catch (err) {
+      alert("网络错误或上传失败，请重试");
     } finally {
       setUploadingAvatar(false);
+      setAvatarPreview(null);
+      URL.revokeObjectURL(blobUrl);
       e.target.value = "";
     }
   };
 
-  const displayAvatarUrl = avatarUrl || profile.avatar_url;
+  const displayAvatarUrl = avatarPreview || avatarUrl || profile.avatar_url;
 
   return (
     <div className="rounded-xl border border-foreground/10 bg-black/40 p-6">
+      {syncError && (
+        <div className="mb-4 rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <p className="font-medium">同步失败</p>
+          <p className="mt-1 break-words">{syncError}</p>
+        </div>
+      )}
       <div className="flex items-start gap-4">
         <div className="relative shrink-0">
           {displayAvatarUrl ? (
+            /* key 避免缓存导致新头像不更新 */
             <img
+              key={displayAvatarUrl}
               src={displayAvatarUrl}
               alt=""
               className="h-16 w-16 rounded-full object-cover"
@@ -304,7 +345,7 @@ export function ProfileCard({ profile, userId }: Props) {
                 disabled={saving}
                 className="mt-2 text-xs text-accent hover:underline disabled:opacity-50"
               >
-                {saving ? "…" : t("profile.save")}
+                {saving ? "…" : t("profile.editProfile")}
               </button>
             </div>
           ) : (
@@ -326,8 +367,9 @@ export function ProfileCard({ profile, userId }: Props) {
               <span className="font-mono text-foreground break-all" data-did="farcaster">{displayDid}</span>
             ) : isOwnProfile ? (
               <div>
+                <p className="mb-1.5 text-[11px] text-amber-600/90">{t("profile.didPermanentHint")}</p>
                 {canSyncFarcaster && (
-                  <p className="mb-1.5 text-[11px] text-foreground/50">Farcaster 登录后将自动显示 did:farcaster:FID；若无显示请点击下方「从 Farcaster 同步」</p>
+                  <p className="mb-1.5 text-[11px] text-foreground/50">Farcaster 登录后点击下方「从 Farcaster 同步」可自动将 DID 更新为 Farcaster FID；若同步无效请查看顶部红字报错或刷新重试。</p>
                 )}
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-foreground/70">did:jihe:</span>
@@ -417,14 +459,23 @@ export function ProfileCard({ profile, userId }: Props) {
               disabled={syncingFarcaster}
               className="rounded-full border border-foreground/30 bg-foreground/5 px-4 py-2 text-xs font-semibold text-foreground hover:bg-foreground/10 disabled:opacity-50"
             >
-              {syncingFarcaster ? "同步中…" : "从 Farcaster 同步头像与昵称"}
+              {syncingFarcaster ? "同步中…" : farcasterFields?.fid ? "从 Farcaster 同步头像与昵称" : "尝试同步 Farcaster 资料"}
             </button>
             {syncError && (
-              <p className="w-full text-xs text-red-400 mt-1">
+              <p className="w-full text-xs text-red-400 mt-1 break-words">
                 {syncError}
               </p>
             )}
           </>
+        )}
+        {isOwnProfile && (
+          <button
+            type="button"
+            onClick={() => logout()}
+            className="rounded-full border border-foreground/20 px-4 py-2 text-xs text-foreground/70 hover:text-foreground hover:border-foreground/40"
+          >
+            登出
+          </button>
         )}
         {!isOwnProfile && (
           <>

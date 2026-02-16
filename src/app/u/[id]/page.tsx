@@ -1,7 +1,10 @@
 /**
  * 个人名片 - FID、钱包、SBT 勋章墙、信用评分
  * 数据来自 Supabase user_profiles + user_badges
+ * dynamic 避免缓存导致保存头像/昵称后返回仍显示旧数据
  */
+export const dynamic = "force-dynamic";
+
 import { createServerSupabase } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
 import { ProfileCard } from "@/components/profile/profile-card";
@@ -16,7 +19,7 @@ const fallback = {
   fid: null as string | null,
   custom_did: null as string | null,
   avatar_url: null as string | null,
-  credit_score: 85,
+  credit_score: 50,
   jihe_coin_balance: 0,
   badges: [
     { name: "早期共建", description: "济和 DAO 首批参与者", icon_url: null },

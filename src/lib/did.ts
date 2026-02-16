@@ -19,24 +19,30 @@ export function getDisplayDid(fid: string | number | null | undefined, customDid
 }
 
 /**
- * 校验自定义 DID 的 handle 部分格式（与 Farcaster 风格一致：小写字母数字，3–20 位）
+ * 校验自定义 DID 的 handle 部分格式：@字母+数字（如 @jihe123），3–20 位
  */
 export function validateCustomDidHandle(handle: string): { ok: boolean; error?: string } {
-  const s = handle.trim().toLowerCase();
+  let s = handle.trim();
+  if (s.startsWith("@")) s = s.slice(1).trim();
+  s = s.toLowerCase();
   if (s.length < 3 || s.length > 20) {
-    return { ok: false, error: "DID 需 3–20 位" };
+    return { ok: false, error: "DID 需 3–20 位（格式 @字母+数字）" };
   }
-  if (!/^[a-z0-9_]+$/.test(s)) {
-    return { ok: false, error: "仅支持小写字母、数字和下划线" };
+  if (!/^[a-z0-9]+$/.test(s)) {
+    return { ok: false, error: "仅支持字母和数字（格式 @字母+数字，如 @jihe123）" };
+  }
+  if (!/[a-z]/.test(s)) {
+    return { ok: false, error: "至少包含一个字母" };
   }
   return { ok: true };
 }
 
-/** 从完整 did:jihe:xxx 或纯 handle 解析出 handle（小写） */
+/** 从完整 did:jihe:xxx、@handle 或纯 handle 解析出 handle（小写，无 @） */
 export function normalizeCustomDidInput(input: string): string {
-  const s = input.trim();
+  let s = input.trim();
   if (s.toLowerCase().startsWith("did:jihe:")) {
-    return s.slice(9).trim().toLowerCase();
+    s = s.slice(9).trim();
   }
+  if (s.startsWith("@")) s = s.slice(1).trim();
   return s.toLowerCase();
 }

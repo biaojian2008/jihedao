@@ -31,7 +31,10 @@ npm run dev
 ### 手机预览
 
 - **方式一（同一 WiFi）**：`npm run dev` 已使用 `--hostname 0.0.0.0`，本机在局域网可访问。在电脑上查看本机 IP（Windows：`ipconfig` 看「IPv4 地址」；Mac：系统设置 → 网络），手机连同一 WiFi 后，在浏览器打开 `http://<本机IP>:3000`，例如 `http://192.168.1.100:3000`。
-- **方式二（外网隧道）**：另开一个终端执行 `npm run tunnel`，会得到一个公网 URL（如 `https://xxx.loca.lt`），手机用该链接即可预览（首次可能需按提示点击「Click to Continue」）。
+- **方式二（外网隧道）**：
+  - **ngrok**（需免费注册）：若报错 `ERR_NGROK_4018`，表示未配置 authtoken。① 打开 [ngrok 注册](https://dashboard.ngrok.com/signup) 并登录；② 打开 [Your authtoken](https://dashboard.ngrok.com/get-started/your-authtoken) 复制 token；③ 在项目目录执行一次 `npx ngrok config add-authtoken 粘贴你的token`；④ 再运行 `npm run tunnel:ngrok`，用手机打开终端里打印的 `https://xxx.ngrok-free.app`。
+  - **Cloudflare（无需注册）**：安装 [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) 后，在项目目录执行 `npm run tunnel:cf`（或直接 `cloudflared tunnel --url http://localhost:3000`），用手机打开终端里打印的 `https://xxx.trycloudflare.com`。
+- **方式三（localtunnel）**：`npm run tunnel` 得到 `https://xxx.loca.lt`。若要求密码，打开 https://loca.lt/mytunnelpassword 把显示的 IP 填进去。若出现 503，改用 ngrok 或 Cloudflare。
 
 ## 环境变量（Vercel / .env.local）
 

@@ -85,7 +85,7 @@ export function Nav() {
             </Link>
           </div>
 
-          {/* 桌面：个人中心（仅图标）/登录；手机端不显示，底部栏有个人中心图标 */}
+          {/* 已登录：桌面显示个人中心+登出；手机端仅底部栏有个人中心 */}
           {ready &&
             (authenticated ? (
               <div className="hidden md:flex items-center gap-2">
@@ -106,16 +106,16 @@ export function Nav() {
                 </button>
               </div>
             ) : (
-              <div className="relative hidden md:block" ref={dropdownRef}>
+              <div className="relative" ref={dropdownRef}>
                 <button
                   type="button"
                   onClick={() => setLoginOpen((o) => !o)}
-                  className="rounded-full border border-accent bg-accent/10 px-4 py-2 text-xs font-semibold text-accent hover:bg-accent hover:text-black"
+                  className="rounded-full border border-accent bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent hover:text-black md:px-4 md:py-2"
                 >
                   {t("nav.login")}
                 </button>
                 {loginOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[200px] rounded-lg border border-foreground/10 bg-background py-1 shadow-lg">
+                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[200px] max-w-[calc(100vw-2rem)] rounded-lg border border-foreground/10 bg-background py-1 shadow-lg">
                     <p className="px-4 py-2 text-[10px] text-foreground/50 border-b border-foreground/10">
                       若 Farcaster 一直转圈，可改用邮箱或钱包
                     </p>

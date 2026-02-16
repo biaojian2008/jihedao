@@ -220,16 +220,21 @@ export function PublisherModal({ open, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" onClick={handleClose}>
       <div
-        className="w-full max-w-lg rounded-t-2xl border-t border-foreground/10 bg-background p-6 sm:rounded-2xl sm:border max-h-[88vh] overflow-y-auto"
+        className="flex w-full max-w-lg flex-col rounded-t-2xl border-t border-foreground/10 bg-background sm:rounded-2xl sm:border max-h-[88vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">{t("community.publish")}</h2>
-          <button type="button" onClick={handleClose} className="text-foreground/60 hover:text-foreground text-xl leading-none">
-            ×
-          </button>
+        <div className="shrink-0 p-4 pb-0 sm:p-6 sm:pb-0">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground">{t("community.publish")}</h2>
+            <button type="button" onClick={handleClose} className="text-foreground/60 hover:text-foreground text-xl leading-none">
+              ×
+            </button>
+          </div>
         </div>
-
+        <div
+          className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-6 sm:px-6 sm:pb-6"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
         {success ? (
           <p className="py-8 text-center text-accent font-medium">{t("publisher.success")}</p>
         ) : step === "type" ? (
@@ -541,6 +546,7 @@ export function PublisherModal({ open, onClose }: Props) {
             </div>
           </>
         )}
+        </div>
       </div>
     </div>
   );

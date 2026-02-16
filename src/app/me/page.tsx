@@ -16,7 +16,7 @@ type Status = "idle" | "redirecting" | "syncing" | "done" | "error" | "no-auth" 
 
 export default function MePage() {
   const router = useRouter();
-  const { ready, authenticated, user, login } = useAuth();
+  const { ready, authenticated, user, login, logout } = useAuth();
   const [status, setStatus] = useState<Status>("idle");
   const [syncError, setSyncError] = useState<string | null>(null);
   const started = useRef(false);
@@ -148,6 +148,15 @@ export default function MePage() {
           <p className="text-sm text-foreground/70">
             您已登录。个人档案需使用 Farcaster / 邮箱 / 钱包 登录后同步；Google 登录暂不支持个人档案。
           </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-3 text-sm">
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="rounded-full border border-foreground/30 px-4 py-2 text-foreground/80 hover:border-accent/50 hover:text-accent"
+            >
+              登出
+            </button>
+          </div>
           {links}
         </main>
       </div>
@@ -160,13 +169,20 @@ export default function MePage() {
         <main className="mx-auto max-w-xl px-4 py-8 text-center sm:px-6">
           <h1 className="mb-2 text-xl font-semibold text-foreground">个人中心</h1>
           <p className="text-sm text-foreground/80">{syncError}</p>
-          <div className="mt-3">
+          <div className="mt-3 flex flex-wrap justify-center gap-3">
             <button
               type="button"
               onClick={() => doSync()}
               className="rounded-full border border-accent bg-accent/10 px-4 py-2 text-xs font-semibold text-accent hover:bg-accent hover:text-black"
             >
               重试同步
+            </button>
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="rounded-full border border-foreground/30 px-4 py-2 text-xs text-foreground/80 hover:border-accent/50 hover:text-accent"
+            >
+              登出
             </button>
           </div>
           {links}
