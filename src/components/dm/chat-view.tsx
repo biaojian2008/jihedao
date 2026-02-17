@@ -139,7 +139,8 @@ export function ChatView({ conversationId }: Props) {
   };
 
   const startVoiceInput = () => {
-    const SR = typeof window !== "undefined" && (window.SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionInstance }).webkitSpeechRecognition);
+    const win = typeof window !== "undefined" ? (window as unknown as { SpeechRecognition?: new () => SpeechRecognitionInstance; webkitSpeechRecognition?: new () => SpeechRecognitionInstance }) : null;
+    const SR = win && (win.SpeechRecognition || win.webkitSpeechRecognition);
     if (!SR || listening) return;
     const rec = new SR() as SpeechRecognitionInstance;
     rec.continuous = true;
