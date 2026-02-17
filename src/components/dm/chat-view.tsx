@@ -33,6 +33,19 @@ type Props = { conversationId: string };
 
 const IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i;
 const VIDEO_EXT = /\.(mp4|webm|mov|ogg|avi)(\?|$)/i;
+
+/** Web Speech API: not in all TS libs */
+type SpeechRecognitionInstance = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: (e: { results: { length: number; [i: number]: { length: number; [j: number]: { transcript: string }; isFinal: boolean } }) => void;
+  onend: () => void;
+  onerror: () => void;
+  start: () => void;
+  stop: () => void;
+};
+
 function isMediaUrl(text: string): "image" | "video" | null {
   const trimmed = text.trim();
   if (!/^https?:\/\//.test(trimmed)) return null;
@@ -55,7 +68,7 @@ export function ChatView({ conversationId }: Props) {
   const [showTransfer, setShowTransfer] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [listening, setListening] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -124,13 +137,13 @@ export function ChatView({ conversationId }: Props) {
   };
 
   const startVoiceInput = () => {
-    const SR = typeof window !== "undefined" && (window.SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: SpeechRecognition }).webkitSpeechRecognition);
+    const SR = typeof window !== "undefined" && (window.SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionInstance }).webkitSpeechRecognition);
     if (!SR || listening) return;
-    const rec = new SR();
+    const rec = new SR() as SpeechRecognitionInstance;
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = "zh-CN";
-    rec.onresult = (e: SpeechRecognitionEvent) => {
+    rec.onresult = (e) => {
       const last = e.results.length - 1;
       const text = e.results[last][0].transcript;
       if (e.results[last].isFinal) setInput((s) => (s ? s + " " + text : text));
