@@ -35,16 +35,18 @@ const IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i;
 const VIDEO_EXT = /\.(mp4|webm|mov|ogg|avi)(\?|$)/i;
 
 /** Web Speech API: not in all TS libs */
-type SpeechRecognitionInstance = {
+type SpeechResultItem = { transcript: string };
+type SpeechResult = { 0: SpeechResultItem; isFinal: boolean };
+interface SpeechRecognitionInstance {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
-  onresult: (e: { results: { length: number; [i: number]: { length: number; [j: number]: { transcript: string }; isFinal: boolean } }) => void;
+  onresult: (e: { results: SpeechResult[] }) => void;
   onend: () => void;
   onerror: () => void;
   start: () => void;
   stop: () => void;
-};
+}
 
 function isMediaUrl(text: string): "image" | "video" | null {
   const trimmed = text.trim();
