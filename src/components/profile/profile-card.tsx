@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { usePrivy } from "@privy-io/react-auth";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { TranslateButton } from "@/components/translate-button";
@@ -26,37 +25,6 @@ type Profile = {
 };
 
 type Props = { profile: Profile; userId: string };
-
-function SavedPostsSection({ userId }: { userId: string }) {
-  const { t } = useLocale();
-  const { data: saved = [] } = useQuery({
-    queryKey: ["saved-posts", userId],
-    queryFn: async () => {
-      const res = await fetch(`/api/saved-posts?userId=${userId}`);
-      if (!res.ok) return [];
-      return res.json();
-    },
-  });
-  if (saved.length === 0) return null;
-  return (
-    <div className="mt-6">
-      <h2 className="text-xs uppercase tracking-wider text-accent/80">收藏的帖子</h2>
-      <ul className="mt-2 space-y-2">
-        {saved.map((item: { id: string; title: string; author_name: string }) => (
-          <li key={item.id}>
-            <Link
-              href={`/community/${item.id}`}
-              className="block rounded-lg border border-foreground/10 bg-black/40 px-3 py-2 text-sm text-foreground hover:border-accent/40"
-            >
-              <span className="font-medium">{item.title}</span>
-              <span className="ml-2 text-xs text-foreground/60">{item.author_name}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
 
 export function ProfileCard({ profile, userId }: Props) {
   const { t } = useLocale();
@@ -472,10 +440,6 @@ export function ProfileCard({ profile, userId }: Props) {
           </ul>
         </div>
       ) : null}
-
-      {isOwnProfile && (
-        <SavedPostsSection userId={userId} />
-      )}
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         {isOwnProfile && privyUser?.id && !farcasterFields?.fid && (

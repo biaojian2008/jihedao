@@ -7,6 +7,7 @@ import { useLocale } from "@/lib/i18n/locale-context";
 import { TranslateButton } from "@/components/translate-button";
 import { TransferModal } from "@/components/transfer/transfer-modal";
 import { getDisplayDid } from "@/lib/did";
+import { IconMic } from "@/components/layout/nav-icons";
 
 type Message = {
   id: string;
@@ -53,6 +54,8 @@ export function ChatView({ conversationId }: Props) {
   const [showEmoji, setShowEmoji] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -118,6 +121,33 @@ export function ChatView({ conversationId }: Props) {
     if (!text || !profileId || sending) return;
     setInput("");
     await sendContent(text);
+  };
+
+  const startVoiceInput = () => {
+    const SR = typeof window !== "undefined" && (window.SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: SpeechRecognition }).webkitSpeechRecognition);
+    if (!SR || listening) return;
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = "zh-CN";
+    rec.onresult = (e: SpeechRecognitionEvent) => {
+      const last = e.results.length - 1;
+      const text = e.results[last][0].transcript;
+      if (e.results[last].isFinal) setInput((s) => (s ? s + " " + text : text));
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    rec.start();
+    setListening(true);
+    recognitionRef.current = rec;
+  };
+
+  const stopVoiceInput = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setListening(false);
   };
 
   const uploadAndSendImage = async (file: File) => {
@@ -286,22 +316,30 @@ export function ChatView({ conversationId }: Props) {
           </div>
         )}
         <div className="flex items-end gap-2">
-          <button
-            type="button"
-            onClick={() => { setShowPlusMenu((v) => !v); setShowEmoji(false); }}
-            className="shrink-0 rounded-lg border border-foreground/20 p-2 text-lg text-foreground/70 hover:bg-foreground/10"
-            aria-label="更多"
-          >
-            +
-          </button>
           <input
             type="text"
-            placeholder="输入消息…"
+            placeholder={t("dm.inputPlaceholder")}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
             className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50 focus:border-accent/60 focus:outline-none"
           />
+          <button
+            type="button"
+            onClick={() => { setShowPlusMenu((v) => !v); setShowEmoji(false); }}
+            className="shrink-0 rounded-lg border border-foreground/20 p-2 text-foreground/70 hover:bg-foreground/10"
+            aria-label="更多"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={listening ? stopVoiceInput : startVoiceInput}
+            className={`shrink-0 rounded-lg border p-2 ${listening ? "border-red-500/60 bg-red-500/20 text-red-400" : "border-foreground/20 text-foreground/70 hover:bg-foreground/10"}`}
+            aria-label="语音输入"
+          >
+            <IconMic className="h-5 w-5" />
+          </button>
           <button
             type="button"
             onClick={() => { setShowEmoji((v) => !v); setShowPlusMenu(false); }}
@@ -319,7 +357,6 @@ export function ChatView({ conversationId }: Props) {
             {t("dm.send")}
           </button>
         </div>
-        <p className="mt-1 text-[10px] text-foreground/40">语音输入敬请期待</p>
       </div>
     </div>
   );

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { TranslateButton } from "@/components/translate-button";
 import { getCurrentProfileId } from "@/lib/current-user";
+import { IconHeartOutline, IconHeartFilled, IconComment } from "@/components/layout/nav-icons";
 
 type Post = {
   id: string;
@@ -40,6 +42,60 @@ export function PostDetailView({ post }: Props) {
   const isProjectOrTask = ["project", "task"].includes(post.type);
   const hasCollateral = (post.author_collateral ?? 0) > 0 || (post.participant_freeze ?? 0) > 0;
   const canParticipate = isProjectOrTask && (post.participant_freeze ?? 0) > 0 && currentUserId && currentUserId !== post.author_id;
+
+  const { data: likeData, refetch: refetchLike } = useQuery({
+    queryKey: ["post-like", post.id, currentUserId],
+    queryFn: async () => {
+      const res = await fetch(`/api/posts/${post.id}/like?userId=${currentUserId ?? ""}`);
+      if (!res.ok) return { liked: false, count: 0 };
+      return res.json() as Promise<{ liked: boolean; count: number }>;
+    },
+  });
+  const { data: comments = [], refetch: refetchComments } = useQuery({
+    queryKey: ["post-comments", post.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/posts/${post.id}/comments`);
+      if (!res.ok) return [];
+      return res.json() as Promise<{ id: string; author_id: string; author_name: string; content: string; created_at: string }[]>;
+    },
+  });
+  const [commentInput, setCommentInput] = useState("");
+  const [commentSending, setCommentSending] = useState(false);
+
+  const toggleLike = async () => {
+    if (!currentUserId) return;
+    const liked = likeData?.liked ?? false;
+    if (liked) {
+      await fetch(`/api/posts/${post.id}/like?userId=${currentUserId}`, { method: "DELETE" });
+    } else {
+      await fetch(`/api/posts/${post.id}/like`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: currentUserId }),
+      });
+    }
+    refetchLike();
+  };
+
+  const submitComment = async () => {
+    const content = commentInput.trim();
+    if (!content || !currentUserId || commentSending) return;
+    setCommentSending(true);
+    try {
+      const res = await fetch(`/api/posts/${post.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ author_id: currentUserId, content }),
+      });
+      if (res.ok) {
+        setCommentInput("");
+        refetchComments();
+        refetchLike();
+      }
+    } finally {
+      setCommentSending(false);
+    }
+  };
 
   useEffect(() => {
     if (!currentUserId || !canParticipate) return;
@@ -203,6 +259,67 @@ export function PostDetailView({ post }: Props) {
           </pre>
         </div>
       )}
+
+      {/* 点赞、评论 */}
+      <div className="mt-6 flex flex-wrap items-center gap-4">
+        <button
+          type="button"
+          onClick={toggleLike}
+          className="flex items-center gap-2 text-foreground/70 hover:text-accent"
+          aria-label={t("community.like")}
+        >
+          {likeData?.liked ? (
+            <IconHeartFilled className="h-5 w-5 text-red-500" />
+          ) : (
+            <IconHeartOutline className="h-5 w-5" />
+          )}
+          <span>{likeData?.count ?? 0}</span>
+        </button>
+        <span className="flex items-center gap-2 text-foreground/70">
+          <IconComment className="h-5 w-5" />
+          <span>{comments.length}</span> {t("community.comment")}
+        </span>
+      </div>
+
+      {/* 评论列表 */}
+      <div className="mt-6 border-t border-foreground/10 pt-6">
+        <h3 className="mb-3 text-sm font-medium text-foreground/80">{t("community.comment")}</h3>
+        <ul className="space-y-3">
+          {comments.map((c) => (
+            <li key={c.id} className="rounded-lg border border-foreground/10 bg-black/30 px-3 py-2 text-sm">
+              <div className="flex items-center gap-2 text-xs text-foreground/60">
+                <Link href={`/u/${c.author_id}`} className="font-medium text-foreground hover:text-accent">
+                  {c.author_name}
+                </Link>
+                <time>{new Date(c.created_at).toLocaleString("zh-CN")}</time>
+              </div>
+              <p className="mt-1 whitespace-pre-wrap text-foreground/90">{c.content}</p>
+            </li>
+          ))}
+        </ul>
+        {currentUserId ? (
+          <div className="mt-4 flex gap-2">
+            <input
+              type="text"
+              value={commentInput}
+              onChange={(e) => setCommentInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submitComment()}
+              placeholder={t("community.commentPlaceholder") || "写一条评论…"}
+              className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50 focus:border-accent/60 focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={submitComment}
+              disabled={commentSending || !commentInput.trim()}
+              className="shrink-0 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+            >
+              {commentSending ? "…" : t("community.commentSubmit") || "发送"}
+            </button>
+          </div>
+        ) : (
+          <p className="mt-4 text-xs text-foreground/50">{t("post.needLogin")}</p>
+        )}
+      </div>
 
       {/* 参加 / 退出 */}
       {canParticipate && (

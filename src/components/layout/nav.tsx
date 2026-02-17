@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -20,12 +21,15 @@ export function Nav() {
   const pathname = usePathname();
   const { ready, authenticated, login, logout } = useAuth();
   const { locale, setLocale, t } = useLocale();
+  const [loginOpen, setLoginOpen] = useState(false);
 
-  const handleLogin = () => {
+  const handlePrivyLogin = () => {
+    setLoginOpen(false);
     login();
   };
 
   const handleGoogleLogin = () => {
+    setLoginOpen(false);
     const base = typeof window !== "undefined" ? window.location.origin : "";
     window.location.href = `${base}/api/auth/signin/google?callbackUrl=${encodeURIComponent(base + "/")}`;
   };
@@ -102,22 +106,39 @@ export function Nav() {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <>
                 <button
                   type="button"
-                  onClick={handleLogin}
+                  onClick={() => setLoginOpen(true)}
                   className="rounded-full border border-accent bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent hover:text-black md:px-4 md:py-2"
                 >
-                  {t("nav.login")}
+                  Login
                 </button>
-                <button
-                  type="button"
-                  onClick={handleGoogleLogin}
-                  className="text-[10px] text-foreground/50 hover:text-accent"
-                >
-                  Google
-                </button>
-              </div>
+                {loginOpen && (
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60" onClick={() => setLoginOpen(false)}>
+                    <div className="mx-4 w-full max-w-sm rounded-xl border border-foreground/20 bg-background p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                      <p className="mb-3 text-sm text-foreground/80">选择登录方式</p>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          type="button"
+                          onClick={handlePrivyLogin}
+                          className="rounded-lg border border-accent bg-accent/10 py-2.5 text-sm font-medium text-accent hover:bg-accent hover:text-black"
+                        >
+                          {t("nav.loginEmailWallet")} / Farcaster
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleGoogleLogin}
+                          className="rounded-lg border border-foreground/30 bg-foreground/5 py-2.5 text-sm font-medium text-foreground hover:bg-foreground/10"
+                        >
+                          Google
+                        </button>
+                      </div>
+                      <button type="button" onClick={() => setLoginOpen(false)} className="mt-3 w-full text-xs text-foreground/50 hover:text-foreground">取消</button>
+                    </div>
+                  </div>
+                )}
+              </>
             ))}
         </div>
       </nav>

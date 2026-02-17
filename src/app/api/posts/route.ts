@@ -46,6 +46,12 @@ export async function GET(request: NextRequest) {
   const userId = searchParams.get("userId") || "";
   const feed = searchParams.get("feed") || "all";
 
+  let blockedAuthorIds: string[] = [];
+  if (userId) {
+    const { data: blocks } = await supabase.from("user_blocks").select("blocked_user_id").eq("user_id", userId);
+    blockedAuthorIds = (blocks ?? []).map((b: { blocked_user_id: string }) => b.blocked_user_id);
+  }
+
   let followingIds: string[] = [];
   if (userId && (feed === "following" || feed === "all")) {
     const { data: followRows } = await supabase
@@ -53,6 +59,23 @@ export async function GET(request: NextRequest) {
       .select("following_id")
       .eq("follower_id", userId);
     followingIds = (followRows ?? []).map((r) => r.following_id);
+  }
+
+  let postIdsFilter: string[] | null = null;
+  if (userId && (feed === "saved" || feed === "liked" || feed === "commented" || feed === "mine")) {
+    if (feed === "mine") {
+      postIdsFilter = []; // will filter by author_id in query
+    } else if (feed === "saved") {
+      const { data: saved } = await supabase.from("saved_posts").select("post_id").eq("user_id", userId);
+      postIdsFilter = (saved ?? []).map((r: { post_id: string }) => r.post_id);
+    } else if (feed === "liked") {
+      const { data: liked } = await supabase.from("likes").select("post_id").eq("user_id", userId);
+      postIdsFilter = (liked ?? []).map((r: { post_id: string }) => r.post_id);
+    } else if (feed === "commented") {
+      const { data: commented } = await supabase.from("comments").select("post_id").eq("author_id", userId);
+      postIdsFilter = [...new Set((commented ?? []).map((r: { post_id: string }) => r.post_id))];
+    }
+    if (postIdsFilter && postIdsFilter.length === 0 && feed !== "mine") return NextResponse.json([]);
   }
 
   let query = supabase
@@ -65,6 +88,12 @@ export async function GET(request: NextRequest) {
     query = query.in("author_id", followingIds);
   } else if (feed === "following" && userId && followingIds.length === 0) {
     return NextResponse.json([]);
+  }
+  if (feed === "mine" && userId) {
+    query = query.eq("author_id", userId);
+  }
+  if (postIdsFilter && postIdsFilter.length > 0) {
+    query = query.in("id", postIdsFilter);
   }
   if (type && ["project", "task", "product", "course", "demand", "stance"].includes(type)) {
     query = query.eq("type", type);
@@ -79,6 +108,9 @@ export async function GET(request: NextRequest) {
   }
 
   let rows = data || [];
+  if (blockedAuthorIds.length > 0) {
+    rows = rows.filter((r: { author_id: string }) => !blockedAuthorIds.includes(r.author_id));
+  }
   if (feed === "all" && userId && followingIds.length > 0) {
     rows = [...rows].sort((a, b) => {
       const aFirst = followingIds.includes((a as { author_id: string }).author_id);
@@ -100,7 +132,26 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const result = rows.map((row: Record<string, unknown> & { author_id: string }) => {
+  const postIds = rows.map((r: { id: string }) => r.id);
+  let likeCounts: Record<string, number> = {};
+  let commentCounts: Record<string, number> = {};
+  let likedByMe: Record<string, boolean> = {};
+  if (postIds.length > 0) {
+    const { data: likeRows } = await supabase.from("likes").select("post_id").in("post_id", postIds);
+    for (const r of likeRows ?? []) {
+      likeCounts[r.post_id] = (likeCounts[r.post_id] ?? 0) + 1;
+    }
+    if (userId) {
+      const { data: myLikes } = await supabase.from("likes").select("post_id").eq("user_id", userId).in("post_id", postIds);
+      for (const r of myLikes ?? []) likedByMe[r.post_id] = true;
+    }
+    const { data: commentRows } = await supabase.from("comments").select("post_id").in("post_id", postIds);
+    for (const r of commentRows ?? []) {
+      commentCounts[r.post_id] = (commentCounts[r.post_id] ?? 0) + 1;
+    }
+  }
+
+  const result = rows.map((row: Record<string, unknown> & { author_id: string; id: string }) => {
     const p = profiles[row.author_id];
     return {
       ...row,
@@ -108,6 +159,9 @@ export async function GET(request: NextRequest) {
       content: resolveText(row.content, locale),
       author_name: p?.display_name ?? "匿名",
       author_credit: p?.credit_score ?? row.credit_weight ?? 0,
+      like_count: likeCounts[row.id] ?? 0,
+      comment_count: commentCounts[row.id] ?? 0,
+      liked_by_me: !!likedByMe[row.id],
     };
   });
   return NextResponse.json(result);

@@ -24,7 +24,6 @@ type Props = {
 };
 
 export function UserDIDView({ userId, walletAddress }: Props) {
-  const [score, setScore] = useState<number | null>(null);
   const [sbts, setSbts] = useState<SBTRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedIssuer, setExpandedIssuer] = useState<string | null>(null);
@@ -35,17 +34,8 @@ export function UserDIDView({ userId, walletAddress }: Props) {
     async function fetchData() {
       setLoading(true);
       try {
-        const [scoreRes, sbtsRes] = await Promise.all([
-          fetch(`/api/reputation/score?userId=${userId}`),
-          fetch(`/api/sbt/list?recipientUserId=${userId}`),
-        ]);
+        const sbtsRes = await fetch(`/api/sbt/list?recipientUserId=${userId}`);
         if (cancelled) return;
-        if (scoreRes.ok) {
-          const d = await scoreRes.json();
-          setScore(d.score ?? 0);
-        } else {
-          setScore(0);
-        }
         if (sbtsRes.ok) {
           const list = await sbtsRes.json();
           setSbts(Array.isArray(list) ? list : []);
@@ -53,10 +43,7 @@ export function UserDIDView({ userId, walletAddress }: Props) {
           setSbts([]);
         }
       } catch {
-        if (!cancelled) {
-          setScore(0);
-          setSbts([]);
-        }
+        if (!cancelled) setSbts([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -93,13 +80,10 @@ export function UserDIDView({ userId, walletAddress }: Props) {
 
   return (
     <div className="mt-6 rounded-xl border border-foreground/10 bg-black/40 p-6">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-accent/80">信誉与 SBT</h2>
-      <div className="mt-3 flex items-baseline gap-2">
-        <span className="text-2xl font-bold text-accent">{score ?? 0}</span>
-        <span className="text-xs text-foreground/60">信誉分（实时计算）</span>
-      </div>
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-accent/80">SBT</h2>
+      <p className="mt-2 text-xs text-foreground/50">此处展示持有的 SBT 与签发方信誉；信誉分仅见上方个人名片。</p>
 
-      {sbts.length > 0 && (
+      {sbts.length > 0 ? (
         <div className="mt-6">
           <h3 className="mb-2 text-xs font-medium text-foreground/70">持有的 SBT</h3>
           <ul className="space-y-2">
@@ -181,7 +165,7 @@ export function UserDIDView({ userId, walletAddress }: Props) {
             })}
           </ul>
         </div>
-      )}
+      ) : null}
 
       {!loading && sbts.length === 0 && (
         <p className="mt-4 text-xs text-foreground/50">暂无 SBT 记录</p>
