@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "generate-icons": "node scripts/generate-pwa-icons.mjs",
     "dev": "next dev --hostname 0.0.0.0",
     "dev:local": "next dev",
     "tunnel": "npx localtunnel --port 3000",
