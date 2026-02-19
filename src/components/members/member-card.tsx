@@ -71,26 +71,39 @@ export function MemberCard({ member, isBlockedTab, onUnblock }: Props) {
     }
   };
 
+  const [blockError, setBlockError] = useState<string | null>(null);
+
   const toggleBlock = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!currentId || isOwn || blocking) return;
+    setBlockError(null);
     setBlocking(true);
     try {
       if (isBlockedTab) {
-        await fetch("/api/blocks", {
+        const res = await fetch("/api/blocks", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_id: currentId, blocked_user_id: member.id }),
         });
-        onUnblock?.();
+        if (res.ok) {
+          onUnblock?.();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          setBlockError((data as { error?: string })?.error || "取消失败");
+        }
       } else {
-        await fetch("/api/blocks", {
+        const res = await fetch("/api/blocks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_id: currentId, blocked_user_id: member.id }),
         });
-        onUnblock?.();
+        if (res.ok) {
+          onUnblock?.();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          setBlockError((data as { error?: string })?.error || "屏蔽失败");
+        }
       }
     } finally {
       setBlocking(false);
@@ -177,6 +190,9 @@ export function MemberCard({ member, isBlockedTab, onUnblock }: Props) {
           </span>
         )}
       </div>
+      {blockError && (
+        <p className="mt-2 text-xs text-red-400">{blockError}</p>
+      )}
     </div>
   );
 }

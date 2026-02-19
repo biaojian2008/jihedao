@@ -380,7 +380,7 @@ export default async function Home() {
                 <p className="mt-0.5 text-foreground/70">{item.desc}</p>
               </div>
             ))}
-          </div>
+        </div>
           {(cms.camp_media_urls?.length ? cms.camp_media_urls : cms.camp_image_url ? [cms.camp_image_url] : []).map((url, i) => (
             <div key={i} className="mt-4 overflow-hidden rounded-xl border border-foreground/10">
               {/\.(mp4|webm|mov|ogg)(\?|$)/i.test(url) ? (
@@ -389,7 +389,7 @@ export default async function Home() {
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={url} alt="德阳济和营地" className="w-full object-cover" />
               )}
-            </div>
+        </div>
           ))}
         </section>
       </main>

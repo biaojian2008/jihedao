@@ -16,6 +16,8 @@ import {
   IconTrash,
 } from "@/components/layout/nav-icons";
 
+const COMMENT_EMOJIS = "😀😊😂👍❤️🔥👏🙏🤝💪✨🎉😅🤔👀".split("");
+
 type Post = {
   id: string;
   author_id: string;
@@ -47,6 +49,9 @@ export function CommunityFeed() {
   const [q, setQ] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [publisherOpen, setPublisherOpen] = useState(false);
+  const [openCommentPostId, setOpenCommentPostId] = useState<string | null>(null);
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [commentSending, setCommentSending] = useState<string | null>(null);
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["posts", locale, type, q, profileId, tab],
@@ -78,6 +83,17 @@ export function CommunityFeed() {
     enabled: !!profileId,
   });
   const savedPostIds = new Set((savedPosts as { id: string }[]).map((p) => p.id));
+
+  const { data: openPostComments = [] } = useQuery({
+    queryKey: ["post-comments", openCommentPostId],
+    queryFn: async () => {
+      if (!openCommentPostId) return [];
+      const res = await fetch(`/api/posts/${openCommentPostId}/comments`);
+      if (!res.ok) return [];
+      return res.json() as Promise<{ id: string; author_name: string; content: string; created_at: string }[]>;
+    },
+    enabled: !!openCommentPostId,
+  });
 
   const queryClient = useQueryClient();
   const handleSearch = () => setQ(searchInput.trim());
@@ -125,6 +141,26 @@ export function CommunityFeed() {
     if (!confirm(t("community.deleteConfirm") || "确定删除这篇帖子？")) return;
     const res = await fetch(`/api/posts/${postId}?userId=${encodeURIComponent(profileId)}`, { method: "DELETE" });
     if (res.ok) queryClient.invalidateQueries({ queryKey: ["posts", locale, type, q, profileId, tab] });
+  };
+
+  const submitComment = async (postId: string) => {
+    const content = (commentInputs[postId] ?? "").trim();
+    if (!content || !profileId || commentSending) return;
+    setCommentSending(postId);
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ author_id: profileId, content }),
+      });
+      if (res.ok) {
+        setCommentInputs((prev) => ({ ...prev, [postId]: "" }));
+        queryClient.invalidateQueries({ queryKey: ["post-comments", postId] });
+        queryClient.invalidateQueries({ queryKey: ["posts", locale, type, q, profileId, tab] });
+      }
+    } finally {
+      setCommentSending(null);
+    }
   };
 
   return (
@@ -247,15 +283,19 @@ export function CommunityFeed() {
                     )}
                     <span>{post.like_count ?? 0}</span>
                   </button>
-                  <Link
-                    href={`/community/${post.id}`}
-                    className="flex items-center gap-1.5 text-foreground/50 hover:text-accent"
-                    onClick={(e) => e.stopPropagation()}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setOpenCommentPostId((prev) => (prev === post.id ? null : post.id));
+                    }}
+                    className={`flex items-center gap-1.5 ${openCommentPostId === post.id ? "text-accent" : "text-foreground/50 hover:text-accent"}`}
                     aria-label={t("community.comment")}
                   >
                     <IconComment className="h-4 w-4" />
                     <span>{post.comment_count ?? 0}</span>
-                  </Link>
+                  </button>
                   <button
                     type="button"
                     onClick={(e) => toggleSave(post.id, e)}
@@ -269,6 +309,56 @@ export function CommunityFeed() {
                     )}
                   </button>
                 </div>
+                {openCommentPostId === post.id && (
+                  <div className="mt-3 rounded-lg border border-foreground/10 bg-black/30 p-3">
+                    {openPostComments.length > 0 && (
+                      <ul className="mb-3 max-h-32 space-y-1.5 overflow-y-auto text-xs">
+                        {openPostComments.map((c) => (
+                          <li key={c.id} className="flex gap-2">
+                            <span className="shrink-0 font-medium text-foreground/80">{c.author_name}</span>
+                            <span className="text-foreground/70">{c.content}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {profileId ? (
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-end gap-2">
+                          <input
+                            type="text"
+                            placeholder={t("community.commentPlaceholder") || "写一条评论…"}
+                            value={commentInputs[post.id] ?? ""}
+                            onChange={(e) => setCommentInputs((prev) => ({ ...prev, [post.id]: e.target.value }))}
+                            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submitComment(post.id)}
+                            className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50 focus:border-accent/60 focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => submitComment(post.id)}
+                            disabled={commentSending === post.id || !(commentInputs[post.id] ?? "").trim()}
+                            className="shrink-0 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-black disabled:opacity-50"
+                          >
+                            {commentSending === post.id ? "…" : t("community.commentSubmit") || "发送"}
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {COMMENT_EMOJIS.map((emoji) => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              className="text-lg leading-none hover:opacity-80"
+                              onClick={() => setCommentInputs((prev) => ({ ...prev, [post.id]: (prev[post.id] ?? "") + emoji }))}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-foreground/50">{t("post.needLogin") || "登录后可评论"}</p>
+                    )}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
