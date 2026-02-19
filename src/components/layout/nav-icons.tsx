@@ -75,6 +75,17 @@ export function IconSearch({ className }: { className?: string }) {
   );
 }
 
+/** 情报筛选+推送（RSS/新闻流） */
+export function IconIntel({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 11a9 9 0 0 1 9 9" />
+      <path d="M4 4a12 12 0 0 1 12 12" />
+      <circle cx="5" cy="19" r="1" />
+    </svg>
+  );
+}
+
 export function IconAdmin({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -202,6 +213,7 @@ const iconMap = {
   "/community": IconCommunity,
   "/members": IconMembers,
   "/dm": IconChat,
+  "/intel": IconIntel,
   "/me": IconProfile,
   "/admin": IconAdmin,
 } as const;

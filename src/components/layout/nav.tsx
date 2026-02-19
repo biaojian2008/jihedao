@@ -14,6 +14,7 @@ const navKeys = [
   { href: "/community", key: "nav.community" },
   { href: "/members", key: "nav.members" },
   { href: "/dm", key: "nav.dm" },
+  { href: "/intel", key: "nav.intel" },
   { href: "/admin", key: "nav.admin" },
 ] as const;
 
