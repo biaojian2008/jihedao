@@ -245,7 +245,7 @@ export function ProfileCard({ profile, userId }: Props) {
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-semibold text-foreground font-mono">
-            {displayDid || getDisplayNameOrDid(profile)}
+            {displayDid || getDisplayNameOrDid({ ...profile, id: userId })}
           </h1>
           {profile.bio && (
             <p className="mt-1 text-sm text-foreground/70">{profile.bio}</p>
@@ -394,7 +394,7 @@ export function ProfileCard({ profile, userId }: Props) {
       {showTransfer && !isOwnProfile && (
         <TransferModal
           toUserId={userId}
-          toUserName={getDisplayNameOrDid(profile)}
+          toUserName={getDisplayNameOrDid({ ...profile, id: userId })}
           onClose={() => setShowTransfer(false)}
         />
       )}
