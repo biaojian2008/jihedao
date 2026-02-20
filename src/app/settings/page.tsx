@@ -80,6 +80,14 @@ export default function SettingsPage() {
           </p>
         </section>
 
+        {/* 联系方式 */}
+        <section className="mb-8 space-y-2">
+          <h2 className="text-sm font-medium text-foreground/80">{t("settings.contact") ?? "联系方式"}</h2>
+          <p className="text-xs text-foreground/70">
+            松鼠 18161337026（电微同号）
+          </p>
+        </section>
+
         {/* 版本与链接 */}
         <section className="mb-8 space-y-3">
           <h2 className="text-sm font-medium text-foreground/80">更多</h2>
@@ -91,14 +99,14 @@ export default function SettingsPage() {
           <p className="text-[10px] text-foreground/40">版本 0.1 · 更多设定敬请期待</p>
         </section>
 
-        {/* 后台管理 - 置底，仅管理员可见 */}
-        <section className="mt-8 border-t border-foreground/10 pt-6">
+        {/* 管理员入口 - 设定中心内，仅管理员可见 */}
+        <section className="mb-8">
           <AdminGuard fallback={null}>
             <Link
               href="/admin"
               className="block rounded-xl border border-foreground/20 bg-foreground/[0.02] p-4 text-sm font-medium text-foreground/80 transition hover:border-accent/40 hover:text-accent"
             >
-              {t("settings.adminPanel")} →
+              {t("settings.adminPanel") ?? "管理员入口"} →
             </Link>
           </AdminGuard>
         </section>

@@ -31,6 +31,7 @@ type Post = {
   like_count?: number;
   comment_count?: number;
   liked_by_me?: boolean;
+  my_comment?: { content: string; created_at: string };
 };
 
 function formatDate(iso: string) {
@@ -235,26 +236,39 @@ export function CommunityFeed() {
                       <span>·</span>
                       <span>{t("community.credit")} {post.author_credit}</span>
                       <span>·</span>
-                      <span>{formatDate(post.created_at)}</span>
+                      <span>{formatDate(tab === "commented" && post.my_comment ? post.my_comment.created_at : post.created_at)}</span>
                       <span className="shrink-0 rounded border border-foreground/20 px-1.5 py-0.5">
                         {t(`community.type.${post.type}`) || post.type}
                       </span>
                     </div>
-                    <div className="mt-2 flex items-start gap-2 flex-wrap">
-                      <Link href={`/community/${post.id}`} className="min-w-0 flex-1">
-                        <h2 className="text-sm font-semibold text-foreground hover:text-accent">
-                          {post.title}
-                        </h2>
-                      </Link>
-                      <TranslateButton
-                        text={post.title}
-                        display="inline"
-                        className="shrink-0 text-xs text-accent/90 hover:text-accent hover:underline disabled:opacity-60"
-                      />
-                    </div>
-                    <Link href={`/community/${post.id}`} className="mt-1 block">
-                      <p className="line-clamp-2 text-xs text-foreground/70">{post.content}</p>
-                    </Link>
+                    {tab === "commented" && post.my_comment ? (
+                      <>
+                        <div className="mt-2">
+                          <p className="text-sm text-foreground line-clamp-3">{post.my_comment.content}</p>
+                        </div>
+                        <Link href={`/community/${post.id}`} className="mt-1.5 inline-flex items-center gap-1 text-xs text-accent/90 hover:text-accent">
+                          评论于：{post.title}
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <div className="mt-2 flex items-start gap-2 flex-wrap">
+                          <Link href={`/community/${post.id}`} className="min-w-0 flex-1">
+                            <h2 className="text-sm font-semibold text-foreground hover:text-accent">
+                              {post.title}
+                            </h2>
+                          </Link>
+                          <TranslateButton
+                            text={post.title}
+                            display="inline"
+                            className="shrink-0 text-xs text-accent/90 hover:text-accent hover:underline disabled:opacity-60"
+                          />
+                        </div>
+                        <Link href={`/community/${post.id}`} className="mt-1 block">
+                          <p className="line-clamp-2 text-xs text-foreground/70">{post.content}</p>
+                        </Link>
+                      </>
+                    )}
                   </div>
                   {tab === "mine" && profileId === post.author_id && (
                     <div className="flex shrink-0 gap-1">

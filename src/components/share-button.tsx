@@ -16,7 +16,8 @@ export function ShareButton({ url, title, text, className = "", size = "sm" }: P
 
   const handleShare = async () => {
     const fullUrl = typeof window !== "undefined" ? new URL(url, window.location.origin).href : url;
-    const shareData = { title, text: text ?? title, url: fullUrl };
+    const shareText = text ? `${title}\n\n${text}` : title;
+    const shareData = { title, text: shareText, url: fullUrl };
 
     if (typeof navigator !== "undefined" && navigator.share && navigator.canShare?.(shareData)) {
       try {
@@ -24,15 +25,20 @@ export function ShareButton({ url, title, text, className = "", size = "sm" }: P
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       } catch {
-        copyLink(fullUrl);
+        copyLink(fullUrl, title, text);
       }
     } else {
-      copyLink(fullUrl);
+      copyLink(fullUrl, title, text);
     }
   };
 
-  const copyLink = (fullUrl: string) => {
-    navigator.clipboard.writeText(fullUrl).then(() => {
+  const copyLink = (fullUrl: string, copyTitle?: string, copyText?: string) => {
+    const toCopy = copyTitle && copyText
+      ? `${copyTitle}\n\n${copyText}\n\n${fullUrl}`
+      : copyTitle
+        ? `${copyTitle}\n\n${fullUrl}`
+        : fullUrl;
+    navigator.clipboard.writeText(toCopy).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });

@@ -215,7 +215,10 @@ export function GroupChatView({ groupId, groupName, members, canInvite }: Props)
 
       <div className="shrink-0 border-t border-foreground/10 pt-2 pb-4" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0))" }}>
         {showEmoji && (
-          <div className="mb-2 max-h-28 overflow-y-auto rounded-lg border border-foreground/10 bg-black/40 p-2">
+          <div
+            className="mb-2 max-h-28 overflow-y-auto rounded-lg border border-foreground/10 bg-black/40 p-2"
+            style={{ fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif' }}
+          >
             <div className="flex flex-wrap gap-1">
               {EMOJIS.map((e) => (
                 <button key={e} type="button" className="rounded p-1 text-lg leading-none hover:bg-foreground/10" onClick={() => { setInput((s) => s + e); setShowEmoji(false); }}>{e}</button>
@@ -244,6 +247,7 @@ export function GroupChatView({ groupId, groupName, members, canInvite }: Props)
             onClick={() => setShowEmoji((v) => !v)}
             className="shrink-0 rounded-lg border border-foreground/20 p-2 text-foreground/70 hover:bg-foreground/10"
             aria-label="表情"
+            style={{ fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif' }}
           >
             😀
           </button>

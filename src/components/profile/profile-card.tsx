@@ -11,7 +11,7 @@ import { getFarcasterFromPrivyUser } from "@/lib/privy-farcaster";
 import { useAuth } from "@/lib/auth-context";
 import { TransferModal } from "@/components/transfer/transfer-modal";
 import { TipPopover } from "@/components/ui/tip-popover";
-import { IconCamera } from "@/components/layout/nav-icons";
+import { IconCamera, IconInfo } from "@/components/layout/nav-icons";
 
 type Profile = {
   display_name: string | null;
@@ -255,7 +255,8 @@ export function ProfileCard({ profile, userId }: Props) {
 
       <dl className="mt-6 grid gap-2 text-xs">
         <div>
-          <dt className="text-foreground/50">
+          <dt className="flex items-center gap-1">
+            <span className="text-accent">{t("profile.did")}</span>
             <TipPopover
               title="DID"
               content={
@@ -265,63 +266,67 @@ export function ProfileCard({ profile, userId }: Props) {
                 </>
               }
             >
-              <span className="cursor-pointer hover:text-accent">{t("profile.did")} ℹ️</span>
+              <IconInfo className="h-3 w-3 shrink-0 cursor-pointer text-foreground/60 hover:text-accent" />
             </TipPopover>
           </dt>
-          <dd>
-            <span className="font-mono text-foreground break-all">{displayDid}</span>
+          <dd className="text-foreground">
+            <span className="font-mono break-all">{displayDid}</span>
           </dd>
         </div>
         {profile.wallet_address ? (
           <div>
-            <dt className="text-foreground/50">
+            <dt className="flex items-center gap-1">
+              <span className="text-accent">{t("profile.wallet")}</span>
               <TipPopover
                 title="钱包"
                 content="您登录时绑定的链上钱包地址，用于 SBT 签发、转账等操作。非济和 DAO 专属，为通用链上身份。"
               >
-                <span className="cursor-pointer hover:text-accent">{t("profile.wallet")} ℹ️</span>
+                <IconInfo className="h-3 w-3 shrink-0 cursor-pointer text-foreground/60 hover:text-accent" />
               </TipPopover>
             </dt>
-            <dd className="font-mono text-foreground/90 break-all">
+            <dd className="font-mono text-foreground break-all">
               {profile.wallet_address}
             </dd>
-            <p className="mt-0.5 text-[11px] text-foreground/50">{t("profile.walletHint")}</p>
+            <p className="mt-0.5 text-[11px] text-foreground/70">{t("profile.walletHint")}</p>
           </div>
         ) : isOwnProfile ? (
           <div>
-            <dt className="text-foreground/50">{t("profile.wallet")}</dt>
-            <dd className="text-[11px] text-foreground/50">{t("profile.walletHint")}</dd>
+            <dt className="text-accent">{t("profile.wallet")}</dt>
+            <dd className="text-[11px] text-foreground/70">{t("profile.walletHint")}</dd>
           </div>
         ) : null}
         <div>
-          <dt className="text-foreground/50">
+          <dt className="flex items-center gap-1">
+            <span className="text-accent">{t("profile.credit")}</span>
             <TipPopover title="信誉分" content={<><p>基于协作行为计算的信用评分，影响项目参与、任务接取等。</p><p className="mt-2">来源：完成任务、获得好评、持续参与等。高分用户享有更多协作机会。</p></>}>
-              <span className="cursor-pointer hover:text-accent">{t("profile.credit")} ℹ️</span>
+              <IconInfo className="h-3 w-3 shrink-0 cursor-pointer text-foreground/60 hover:text-accent" />
             </TipPopover>
           </dt>
-          <dd className="font-semibold text-accent">
+          <dd className="text-foreground">
             {profile.credit_score} · {creditLabel}
           </dd>
         </div>
         <div>
-          <dt className="text-foreground/50">
+          <dt className="flex items-center gap-1">
+            <span className="text-accent">{t("profile.jiheCoin")}</span>
             <TipPopover title="济和币" content={<><p>平台内积分，用于参与项目、任务、课程等。</p><p className="mt-2">获得方式：发帖 +5、评论 +2、被点赞 +1、完成任务 +10、获得勋章 +20。可用于抵押、冻结、转账。</p></>}>
-              <span className="cursor-pointer hover:text-accent">{t("profile.jiheCoin")} ℹ️</span>
+              <IconInfo className="h-3 w-3 shrink-0 cursor-pointer text-foreground/60 hover:text-accent" />
             </TipPopover>
           </dt>
-          <dd className="font-semibold text-accent">
+          <dd className="text-foreground">
             {profile.jihe_coin_balance} 济和币
           </dd>
         </div>
       </dl>
 
-      {profile.badges?.length > 0 ? (
-        <div className="mt-6">
-          <h2 className="text-xs uppercase tracking-wider text-accent/80">
-            <TipPopover title="SBT 勋章" content=" Soulbound Token，链上不可转移凭证。获得勋章可提升信誉，部分勋章由社区或项目方签发。">
-              <span className="cursor-pointer hover:text-accent">{t("profile.badges")} ℹ️</span>
-            </TipPopover>
-          </h2>
+      <div className="mt-6">
+        <h2 className="flex items-center gap-1 text-xs uppercase tracking-wider text-accent">
+          {t("profile.badges")}
+          <TipPopover title="SBT 说明" content="SBT（Soulbound Token）是链上不可转移的凭证，绑定身份而非钱包。获得勋章可提升信誉，部分勋章由社区或项目方签发。">
+            <IconInfo className="h-3 w-3 shrink-0 cursor-pointer text-foreground/60 hover:text-accent" />
+          </TipPopover>
+        </h2>
+        {profile.badges?.length > 0 ? (
           <ul className="mt-2 flex flex-wrap gap-2">
             {profile.badges.map((b) => (
               <li
@@ -330,13 +335,15 @@ export function ProfileCard({ profile, userId }: Props) {
               >
                 <span className="font-medium text-foreground">{b.name}</span>
                 {b.description && (
-                  <p className="mt-0.5 text-foreground/60">{b.description}</p>
+                  <p className="mt-0.5 text-foreground/80">{b.description}</p>
                 )}
               </li>
             ))}
           </ul>
-        </div>
-      ) : null}
+        ) : (
+          <p className="mt-2 text-xs text-foreground">暂无勋章</p>
+        )}
+      </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         {isOwnProfile && privyUser?.id && !farcasterFields?.fid && (

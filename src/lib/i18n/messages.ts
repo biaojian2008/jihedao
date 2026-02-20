@@ -219,7 +219,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     "settings.share": "分享与安装",
     "settings.addToDesktop": "添加到桌面",
     "settings.shareToFriend": "分享给好友",
-    "settings.adminPanel": "后台管理",
+    "settings.adminPanel": "管理员入口",
+    "settings.contact": "联系方式",
     "settings.hint": "更多设定敬请期待",
   },
   en: {
@@ -434,6 +435,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     "settings.addToDesktop": "Add to Desktop",
     "settings.shareToFriend": "Share with friends",
     "settings.adminPanel": "Admin Panel",
+    "settings.contact": "Contact",
     "settings.hint": "More settings coming soon",
   },
   ja: {
@@ -651,6 +653,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     "settings.addToDesktop": "ホーム画面に追加",
     "settings.shareToFriend": "友達に共有",
     "settings.adminPanel": "管理画面",
+    "settings.contact": "連絡先",
     "settings.hint": "その他の設定は準備中",
   },
 };

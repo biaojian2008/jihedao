@@ -137,6 +137,21 @@ export async function GET(request: NextRequest) {
   let likeCounts: Record<string, number> = {};
   let commentCounts: Record<string, number> = {};
   let likedByMe: Record<string, boolean> = {};
+  let myCommentsByPost: Record<string, { content: string; created_at: string }> = {};
+  if (feed === "commented" && userId && postIds.length > 0) {
+    const { data: myCommented } = await supabase
+      .from("comments")
+      .select("post_id, content, created_at")
+      .eq("author_id", userId)
+      .in("post_id", postIds)
+      .order("created_at", { ascending: false });
+    for (const c of myCommented ?? []) {
+      const pid = (c as { post_id: string }).post_id;
+      if (!myCommentsByPost[pid]) {
+        myCommentsByPost[pid] = { content: (c as { content: string }).content, created_at: (c as { created_at: string }).created_at };
+      }
+    }
+  }
   if (postIds.length > 0) {
     const { data: likeRows } = await supabase.from("likes").select("post_id").in("post_id", postIds);
     for (const r of likeRows ?? []) {
@@ -154,7 +169,7 @@ export async function GET(request: NextRequest) {
 
   const result = rows.map((row: Record<string, unknown> & { author_id: string; id: string }) => {
     const p = profiles[row.author_id];
-    return {
+    const base = {
       ...row,
       title: resolveText(row.title, locale),
       content: resolveText(row.content, locale),
@@ -164,6 +179,9 @@ export async function GET(request: NextRequest) {
       comment_count: commentCounts[row.id] ?? 0,
       liked_by_me: !!likedByMe[row.id],
     };
+    const mc = myCommentsByPost[row.id];
+    if (mc) (base as Record<string, unknown>).my_comment = mc;
+    return base;
   });
   return NextResponse.json(result);
 }

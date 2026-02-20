@@ -149,15 +149,22 @@ export function ChatView({ conversationId }: Props) {
   const startVoiceInput = () => {
     if (listening) return;
     if (typeof window === "undefined") return;
+    if (!(window as unknown as { isSecureContext?: boolean }).isSecureContext) {
+      alert("语音识别需在安全环境（HTTPS）下使用，请使用 https 访问。");
+      return;
+    }
     const win = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionInstance; webkitSpeechRecognition?: new () => SpeechRecognitionInstance };
     const SR = win.SpeechRecognition || win.webkitSpeechRecognition;
     if (!SR) {
       alert("您的浏览器不支持语音识别，请使用 Chrome 或 Edge 最新版。");
       return;
     }
-    if (location.protocol !== "https:" && location.hostname !== "localhost") {
-      alert("语音识别需在 HTTPS 环境下使用，请使用 https 访问。");
-      return;
+    // 清理之前的实例
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch { /* ignore */ }
+      recognitionRef.current = null;
     }
     const rec = new SR() as SpeechRecognitionInstance;
     rec.continuous = true;
@@ -176,21 +183,27 @@ export function ChatView({ conversationId }: Props) {
         setInput((s) => (s ? `${s} ${transcript}` : transcript));
       }
     };
-    rec.onend = () => setListening(false);
-    rec.onerror = (e) => {
+    rec.onend = () => {
+      recognitionRef.current = null;
       setListening(false);
-      const err = e?.error || "unknown";
+    };
+    rec.onerror = (e) => {
+      const err = (e as { error?: string })?.error || "unknown";
+      recognitionRef.current = null;
+      setListening(false);
       if (err === "not-allowed") alert("请允许麦克风权限以使用语音输入。");
       else if (err === "no-speech") return; // 无语音，正常结束
       else if (err === "network") alert("网络错误，请检查网络后重试。");
+      else if (err !== "aborted") alert("语音识别出错，请重试。");
     };
     try {
       rec.start();
       setListening(true);
       recognitionRef.current = rec;
     } catch (err) {
+      recognitionRef.current = null;
       setListening(false);
-      alert("启动语音识别失败，请重试。");
+      alert("启动语音识别失败，请确保已允许麦克风权限后重试。");
     }
   };
 
@@ -285,7 +298,7 @@ export function ChatView({ conversationId }: Props) {
                     playsInline
                   />
                 ) : (
-                  <p className="whitespace-pre-wrap">{m.content}</p>
+                  <p className="whitespace-pre-wrap emoji-ok">{m.content}</p>
                 )}
                 {!mediaType && (
                   <TranslateButton text={m.content} display="inline" className="mt-1 text-[10px] text-accent/90 hover:text-accent" />
@@ -338,7 +351,10 @@ export function ChatView({ conversationId }: Props) {
           </div>
         )}
         {showEmoji && (
-          <div className="mb-2 max-h-32 overflow-y-auto rounded-lg border border-foreground/10 bg-black/40 p-2">
+          <div
+            className="mb-2 max-h-32 overflow-y-auto rounded-lg border border-foreground/10 bg-black/40 p-2"
+            style={{ fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif' }}
+          >
             <div className="flex flex-wrap gap-1">
               {EMOJIS.map((e) => (
                 <button key={e} type="button" className="text-lg leading-none hover:bg-foreground/10 rounded p-1" onClick={() => { setInput((s) => s + e); setShowEmoji(false); }}>{e}</button>
@@ -368,6 +384,7 @@ export function ChatView({ conversationId }: Props) {
             onClick={() => { setShowEmoji((v) => !v); setShowPlusMenu(false); }}
             className="shrink-0 rounded p-1 text-foreground/60 hover:bg-foreground/10"
             aria-label="表情"
+            style={{ fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif' }}
           >
             <span className="text-sm leading-none">😀</span>
           </button>

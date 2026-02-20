@@ -12,6 +12,7 @@ export default function IntelPage() {
   const { t } = useLocale();
   const [keywords, setKeywords] = useState("");
   const [maxPerPush, setMaxPerPush] = useState(5);
+  const [maxPerPushInput, setMaxPerPushInput] = useState("5");
   const [saving, setSaving] = useState(false);
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [loadingFeed, setLoadingFeed] = useState(false);
@@ -25,7 +26,9 @@ export default function IntelPage() {
       const defaultRow = data?.find((x) => x.topic_name === "default");
       if (defaultRow) {
         setKeywords((defaultRow.keywords ?? []).join(", "));
-        setMaxPerPush(Math.min(MAX_PUSH, defaultRow.max_per_push || 5));
+        const v = Math.min(MAX_PUSH, Math.max(1, defaultRow.max_per_push || 5));
+        setMaxPerPush(v);
+        setMaxPerPushInput(String(v));
       }
     } catch {
       /* ignore */
@@ -124,7 +127,7 @@ export default function IntelPage() {
 
         {/* 设置：关键词 + 推送条数 */}
         <div className="mb-6 rounded-xl border border-foreground/20 bg-foreground/[0.02] p-4">
-          <h2 className="mb-3 text-sm font-medium text-foreground">{t("intel.settings")}</h2>
+          <h2 className="mb-3 text-sm font-medium text-accent">{t("intel.settings")}</h2>
           <div className="flex flex-wrap items-end gap-3">
             <div className="min-w-0 flex-1">
               <label className="block text-xs text-foreground/70">{t("intel.keywords")}</label>
@@ -139,11 +142,23 @@ export default function IntelPage() {
             <div className="w-24">
               <label className="block text-xs text-foreground/70">{t("intel.maxPerPush")}</label>
               <input
-                type="number"
-                min={1}
-                max={MAX_PUSH}
-                value={maxPerPush}
-                onChange={(e) => setMaxPerPush(Math.min(MAX_PUSH, Math.max(1, parseInt(e.target.value, 10) || 1)))}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={maxPerPushInput}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/\D/g, "");
+                  setMaxPerPushInput(v);
+                  const n = parseInt(v, 10);
+                  if (!Number.isNaN(n) && n >= 1 && n <= MAX_PUSH) setMaxPerPush(n);
+                }}
+                onBlur={() => {
+                  const n = parseInt(maxPerPushInput, 10);
+                  const valid = !Number.isNaN(n) && n >= 1 && n <= MAX_PUSH;
+                  const display = valid ? String(n) : String(maxPerPush);
+                  setMaxPerPushInput(display);
+                  if (valid) setMaxPerPush(n);
+                }}
                 className="mt-1 w-full rounded border border-foreground/30 bg-background px-3 py-2 text-sm text-foreground"
               />
             </div>
@@ -160,7 +175,7 @@ export default function IntelPage() {
 
         {/* 推送列表 */}
         <div className="flex items-center justify-between gap-2 mb-3">
-          <h2 className="text-sm font-medium text-foreground">{t("intel.feed")}</h2>
+          <h2 className="text-sm font-medium text-accent">{t("intel.feed")}</h2>
           <div className="flex gap-2">
             <button
               type="button"
@@ -199,7 +214,7 @@ export default function IntelPage() {
                 >
                   {item.title}
                 </a>
-                <p className="mt-1 flex flex-wrap gap-x-3 text-[10px] text-foreground/60">
+                <p className="mt-1 flex flex-wrap gap-x-3 text-[10px] text-foreground/80">
                   <span>{item.source}</span>
                   <span>{item.pubDate}</span>
                 </p>
@@ -226,7 +241,7 @@ export default function IntelPage() {
               { name: "FEE", url: "https://fee.org" },
               { name: "Ayn Rand Institute", url: "https://aynrand.org" },
             ].map((l) => (
-              <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="rounded border border-accent/50 px-3 py-1.5 text-xs text-accent hover:bg-accent/10 hover:border-accent">
+              <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="rounded border border-foreground/30 px-3 py-1.5 text-xs text-foreground hover:bg-foreground/10 hover:border-accent">
                 {l.name}
               </a>
             ))}
@@ -236,17 +251,18 @@ export default function IntelPage() {
         {/* 书籍 */}
         <div className="mt-6">
           <h3 className="mb-3 text-sm font-medium text-accent">{t("intel.books")}</h3>
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {[
-              { name: "主权个人", url: "https://en.wikipedia.org/wiki/The_Sovereign_Individual" },
-              { name: "阿特拉斯耸耸肩", url: "https://zh.wikipedia.org/wiki/阿特拉斯耸耸肩" },
-              { name: "源泉", url: "https://zh.wikipedia.org/wiki/源泉_(小说)" },
-              { name: "人、经济与国家", url: "https://zh.wikipedia.org/wiki/人、经济与国家" },
-              { name: "The Sovereign Individual", url: "https://www.amazon.com/dp/0684832720" },
-              { name: "What Has Government Done", url: "https://mises.org/library/what-government-has-done-our-money" },
+              { name: "主权个人", desc: "预言数字时代个体主权的经典", url: "https://en.wikipedia.org/wiki/The_Sovereign_Individual" },
+              { name: "阿特拉斯耸耸肩", desc: "安·兰德巨著，理性利己主义", url: "https://zh.wikipedia.org/wiki/阿特拉斯耸耸肩" },
+              { name: "源泉", desc: "创造者与寄生者的对抗", url: "https://zh.wikipedia.org/wiki/源泉_(小说)" },
+              { name: "人、经济与国家", desc: "罗斯巴德奥地利学派经济学", url: "https://zh.wikipedia.org/wiki/人、经济与国家" },
+              { name: "The Sovereign Individual", desc: "Digital-age survival guide", url: "https://www.amazon.com/dp/0684832720" },
+              { name: "What Has Government Done to Our Money", desc: "货币与政府干预史", url: "https://mises.org/library/what-government-has-done-our-money" },
             ].map((l) => (
-              <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="rounded border border-accent/50 px-3 py-1.5 text-xs text-accent hover:bg-accent/10 hover:border-accent">
-                {l.name}
+              <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="block rounded border border-foreground/30 px-3 py-2 text-foreground hover:bg-foreground/10 hover:border-accent">
+                <span className="text-xs font-medium">{l.name}</span>
+                <span className="ml-2 mt-0.5 block text-xs text-foreground/90">{l.desc}</span>
               </a>
             ))}
           </div>
@@ -264,7 +280,7 @@ export default function IntelPage() {
               { name: "Apache", url: "https://www.apache.org" },
               { name: "CNCF", url: "https://www.cncf.io" },
             ].map((l) => (
-              <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="rounded border border-accent/50 px-3 py-1.5 text-xs text-accent hover:bg-accent/10 hover:border-accent">
+              <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="rounded border border-foreground/30 px-3 py-1.5 text-xs text-foreground hover:bg-foreground/10 hover:border-accent">
                 {l.name}
               </a>
             ))}
