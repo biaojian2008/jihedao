@@ -3,6 +3,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getDisplayNameOrDid } from "@/lib/did";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -38,7 +39,7 @@ export async function GET(
 }
 
 async function buildCommentList(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   rows: { id: string; author_id: string; content: string; created_at: string; parent_id?: string | null }[],
   userId: string
 ) {
