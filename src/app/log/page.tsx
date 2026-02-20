@@ -20,11 +20,11 @@ function toLocale(v: string | undefined): Locale {
 }
 
 export default async function LogPage() {
-  const cookieStore = await cookies();
-  const locale = toLocale(cookieStore.get("jihe_locale")?.value);
   let logs: { id: string; title: string; date: string; excerpt: string; cover_image_url?: string }[] = placeholderLogs;
   try {
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    const cookieStore = await cookies();
+    const locale = toLocale(cookieStore.get("jihe_locale")?.value);
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       const supabase = createServerSupabase();
       const { data } = await supabase
         .from("official_logs")
@@ -32,13 +32,14 @@ export default async function LogPage() {
         .order("date", { ascending: false });
       if (data?.length) {
         logs = data.map((r) => {
-          const content = resolveText(r.content, locale);
+          const content = String(resolveText(r?.content, locale) ?? "");
+          const title = String(resolveText(r?.title, locale) ?? "");
           return {
-            id: r.id,
-            title: resolveText(r.title, locale),
-            date: r.date,
+            id: String(r?.id ?? ""),
+            title: title || "未命名",
+            date: String(r?.date ?? ""),
             excerpt: content.slice(0, 80) + (content.length > 80 ? "…" : ""),
-            cover_image_url: r.cover_image_url ?? undefined,
+            cover_image_url: r?.cover_image_url ?? undefined,
           };
         });
       }
@@ -83,7 +84,7 @@ export default async function LogPage() {
                   {log.excerpt}
                 </p>
               </Link>
-              <div className="shrink-0 pt-4 pr-2" onClick={(e) => e.preventDefault()}>
+              <div className="shrink-0 pt-4 pr-2">
                 <LogShareButton logId={log.id} title={log.title} excerpt={log.excerpt} />
               </div>
             </li>

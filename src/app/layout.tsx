@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
@@ -21,7 +21,6 @@ export const metadata: Metadata = {
     title: "欢迎来到高尔特峡谷——超级个体的交流协作平台",
     description: "超级个体的交流协作平台",
   },
-  themeColor: "#00ff00",
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml", sizes: "any" },
@@ -30,6 +29,10 @@ export const metadata: Metadata = {
     ],
     apple: "/icon-192.png",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#00ff00",
 };
 
 export default function RootLayout({

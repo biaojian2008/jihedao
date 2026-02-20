@@ -25,10 +25,12 @@ type PostType = (typeof POST_TYPES)[number]["value"];
 
 const STANCE_EMOJIS = "😀😃😄😁😅😂🤣😊😇🙂😉😌😍🥰😘😗😙😚😋😛😜🤪😝🤑🤗🤭🤫🤔😐😑😶😏😣😥😮🤐😯😪😫🥱😴🤤😷🤒🤕🤢🤮🤧🥵🥶🥴😵🤯🤠🥳🥸😎🤓🧐😕😟🙁☹️😮😯😲😳🥺😦😧😨😰😥😢😭😱😖😣😞😓😩😫🥱😤😡😠🤬😈💀☠️💩🤡👻💪👍👎👏🙌🤝🙏✌️🤞🤟🤘🤙👌🤌🤏👈👉👆👇☝️✋🤚🖐️🖖👋🤙💅🦾🦿🦵🦶👂🦻👃🧠🫀🫁🦷🦴👀👁️👅👄".split("");
 
-function StanceMediaButtons({ mediaUrlsStr, setMediaUrlsStr }: { mediaUrlsStr: string; setMediaUrlsStr: (v: string) => void }) {
+function MediaUploadSection({ mediaUrlsStr, setMediaUrlsStr }: { mediaUrlsStr: string; setMediaUrlsStr: (v: string) => void }) {
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const urls = mediaUrlsStr.split(/\r?\n/).map((u) => u.trim()).filter((u) => u && /^https?:\/\//.test(u));
+
   const upload = async (file: File) => {
     setUploading(true);
     try {
@@ -49,14 +51,31 @@ function StanceMediaButtons({ mediaUrlsStr, setMediaUrlsStr }: { mediaUrlsStr: s
     if (f) upload(f);
     e.target.value = "";
   };
+  const remove = (url: string) => {
+    setMediaUrlsStr(urls.filter((u) => u !== url).join("\n"));
+  };
+
   return (
-    <>
-      <input ref={galleryRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" onChange={onFile} />
-      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFile} />
-      <button type="button" onClick={() => galleryRef.current?.click()} disabled={uploading} className="rounded-lg border border-foreground/20 p-2 text-foreground/70 hover:bg-foreground/10 disabled:opacity-50" title="图片">🖼️</button>
-      <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading} className="rounded-lg border border-foreground/20 p-2 text-foreground/70 hover:bg-foreground/10 disabled:opacity-50" title="拍照">📷</button>
-      {uploading && <span className="text-[10px] text-foreground/50">上传中…</span>}
-    </>
+    <div className="mt-2 space-y-2 border-t border-foreground/10 pt-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <input ref={galleryRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" onChange={onFile} />
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFile} />
+        <button type="button" onClick={() => galleryRef.current?.click()} disabled={uploading} className="rounded-lg border border-foreground/20 p-2 text-foreground/70 hover:bg-foreground/10 disabled:opacity-50" title="上传图片">🖼️</button>
+        <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading} className="rounded-lg border border-foreground/20 p-2 text-foreground/70 hover:bg-foreground/10 disabled:opacity-50" title="拍照">📷</button>
+        {uploading && <span className="text-[10px] text-foreground/50">上传中…</span>}
+      </div>
+      {urls.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {urls.map((url) => (
+            <div key={url} className="relative group">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt="" className="h-20 w-20 rounded-lg object-cover border border-foreground/20" />
+              <button type="button" onClick={() => remove(url)} className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500/90 text-white text-xs flex items-center justify-center hover:bg-red-500" aria-label="删除">×</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -332,18 +351,20 @@ export function PublisherModal({ open, onClose }: Props) {
           </>
         ) : (
           <>
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-xs text-foreground/50">
-                {t("publisher.chooseType")}: {type && t(`community.type.${type}`)}
-              </span>
-              <button
-                type="button"
-                onClick={() => setStep("type")}
-                className="text-xs text-accent hover:underline"
-              >
-                {t("publisher.back")}
-              </button>
-            </div>
+            {!isProductOrService && (
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-xs text-foreground/50">
+                  {t("publisher.chooseType")}: {type && t(`community.type.${type}`)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setStep("type")}
+                  className="text-xs text-accent hover:underline"
+                >
+                  {t("publisher.back")}
+                </button>
+              </div>
+            )}
             {!isStance && (
               <div className="mb-2">
                 <label className="mb-1 block text-xs text-foreground/70">{isProductOrService ? "商品名" : t("publisher.title")} *</label>
@@ -367,6 +388,7 @@ export function PublisherModal({ open, onClose }: Props) {
                 rows={isStance ? 4 : 5}
                 className="w-full resize-none rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50"
               />
+              <MediaUploadSection mediaUrlsStr={mediaUrlsStr} setMediaUrlsStr={setMediaUrlsStr} />
               {isStance && (
                 <>
                   {showStanceEmoji && (
@@ -388,7 +410,7 @@ export function PublisherModal({ open, onClose }: Props) {
                       </div>
                     </div>
                   )}
-                  <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-foreground/10 pt-2">
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setShowStanceEmoji((v) => !v)}
@@ -397,7 +419,6 @@ export function PublisherModal({ open, onClose }: Props) {
                     >
                       😀
                     </button>
-                    <StanceMediaButtons mediaUrlsStr={mediaUrlsStr} setMediaUrlsStr={setMediaUrlsStr} />
                   </div>
                 </>
               )}
@@ -499,13 +520,7 @@ export function PublisherModal({ open, onClose }: Props) {
                     className="w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
                   />
                 </div>
-                <div>
-                  <label className="mb-0.5 block text-[10px] text-foreground/60">商品图片（上传）</label>
-                  <div className="flex items-center gap-2">
-                    <StanceMediaButtons mediaUrlsStr={mediaUrlsStr} setMediaUrlsStr={setMediaUrlsStr} />
-                  </div>
                 </div>
-              </div>
             )}
 
             {/* 课程：费用（济和币）、谁铸造 SBT、大纲；图片用下方「图片链接」 */}
@@ -637,16 +652,7 @@ export function PublisherModal({ open, onClose }: Props) {
                   onChange={(e) => setTagsStr(e.target.value)}
                   className="mb-2 w-full rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50"
                 />
-                {!isProductOrService && (
-                  <textarea
-                    placeholder={t("publisher.mediaUrls")}
-                    value={mediaUrlsStr}
-                    onChange={(e) => setMediaUrlsStr(e.target.value)}
-                    rows={2}
-                    className="mb-4 w-full resize-none rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50"
-                  />
-                )}
-                {isProductOrService && <div className="mb-4" />}
+                <div className="mb-4" />
               </>
             )}
             {isStance && <div className="mb-4" />}

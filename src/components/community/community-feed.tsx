@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { PublisherModal } from "./publisher-modal";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { TranslateButton } from "@/components/translate-button";
 import { getCurrentProfileId } from "@/lib/current-user";
@@ -48,7 +47,6 @@ export function CommunityFeed() {
   const [type, setType] = useState("");
   const [q, setQ] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [publisherOpen, setPublisherOpen] = useState(false);
   const [openCommentPostId, setOpenCommentPostId] = useState<string | null>(null);
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [commentSending, setCommentSending] = useState<string | null>(null);
@@ -381,20 +379,7 @@ export function CommunityFeed() {
           </ul>
         )}
 
-        <div className="fixed bottom-20 right-4 z-40 md:bottom-6">
-          <button
-            type="button"
-            onClick={() => setPublisherOpen(true)}
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-xl font-bold text-black shadow-lg transition hover:opacity-90"
-            title={t("community.publish")}
-            aria-label={t("community.publish")}
-          >
-            +
-          </button>
-        </div>
-      </main>
-
-      <PublisherModal open={publisherOpen} onClose={() => setPublisherOpen(false)} />
+        </main>
     </div>
   );
 }
