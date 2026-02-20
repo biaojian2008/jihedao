@@ -69,9 +69,10 @@ export default function MembersPage() {
     },
     enabled: !!profileId,
   });
-  const lastMessageByUser = new Map<string, string>(
-    (convos ?? []).map((c) => [c.other_user_id, c.last_message_preview ?? ""]).filter(([, v]) => v)
-  );
+  const lastMessageByUser = new Map<string, string>();
+  for (const c of convos ?? []) {
+    if (c.last_message_preview) lastMessageByUser.set(c.other_user_id, c.last_message_preview);
+  }
 
   const followingIds = new Set(followData?.following ?? []);
   const followerIds = new Set(followData?.followers ?? []);
