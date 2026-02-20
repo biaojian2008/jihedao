@@ -45,7 +45,7 @@ export function HomeActionButtons() {
       )}
       <div className="flex items-center gap-1">
         <span className="text-xs text-foreground/60">分享给好友</span>
-        <ShareButton url={siteUrl} title="济和 DAO" text="协作 · 信用 · 社交 · 数据主权的去中心化实验场" size="md" />
+        <ShareButton url={siteUrl} title="济和 DAO" text="欢迎来到高尔特峡谷——超级个体的交流协作平台" size="md" />
       </div>
     </div>
   );

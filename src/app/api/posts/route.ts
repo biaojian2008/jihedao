@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { resolveText, type Locale } from "@/lib/i18n/resolve";
+import { getDisplayNameOrDid } from "@/lib/did";
 import {
   JIHE_COIN_REASONS,
   JIHE_COIN_RULES,
@@ -95,7 +96,7 @@ export async function GET(request: NextRequest) {
   if (postIdsFilter && postIdsFilter.length > 0) {
     query = query.in("id", postIdsFilter);
   }
-  if (type && ["project", "task", "product", "course", "demand", "stance"].includes(type)) {
+  if (type && ["project", "task", "product", "course", "service", "demand", "stance"].includes(type)) {
     query = query.eq("type", type);
   }
   if (q.trim()) {
@@ -121,14 +122,14 @@ export async function GET(request: NextRequest) {
     });
   }
   const authorIds = [...new Set(rows.map((r: { author_id: string }) => r.author_id))];
-  let profiles: Record<string, { display_name: string | null; credit_score: number }> = {};
+  let profiles: Record<string, { id: string; display_name: string | null; fid: string | null; custom_did: string | null; credit_score: number }> = {};
   if (authorIds.length > 0) {
     const { data: profileList } = await supabase
       .from("user_profiles")
-      .select("id, display_name, credit_score")
+      .select("id, display_name, fid, custom_did, credit_score")
       .in("id", authorIds);
     for (const p of profileList || []) {
-      profiles[p.id] = { display_name: p.display_name, credit_score: p.credit_score ?? 0 };
+      profiles[p.id] = { id: p.id, display_name: p.display_name, fid: p.fid ?? null, custom_did: (p as { custom_did?: string | null }).custom_did ?? null, credit_score: p.credit_score ?? 0 };
     }
   }
 
@@ -157,7 +158,7 @@ export async function GET(request: NextRequest) {
       ...row,
       title: resolveText(row.title, locale),
       content: resolveText(row.content, locale),
-      author_name: p?.display_name ?? "匿名",
+      author_name: p ? getDisplayNameOrDid(p) : getDisplayNameOrDid({ id: row.author_id }),
       author_credit: p?.credit_score ?? row.credit_weight ?? 0,
       like_count: likeCounts[row.id] ?? 0,
       comment_count: commentCounts[row.id] ?? 0,
@@ -224,14 +225,14 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-  const validTypes = ["project", "task", "product", "course", "demand", "stance"];
+  const validTypes = ["project", "task", "product", "course", "service", "demand", "stance"];
   if (!validTypes.includes(type)) {
     return NextResponse.json({ error: "Invalid type" }, { status: 400 });
   }
 
   const coll = Math.max(0, Number(author_collateral) || 0);
   const freeze = Math.max(0, Number(participant_freeze) || 0);
-  const needsCollateral = ["project", "task", "product", "course", "demand"].includes(type);
+  const needsCollateral = ["project", "task", "product", "course", "service", "demand"].includes(type);
   if (["project", "task"].includes(type)) {
     if (coll <= 0) {
       return NextResponse.json({ error: "项目/任务必须设置发布者抵押（济和币）" }, { status: 400 });

@@ -49,19 +49,32 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Rate limit exceeded", hint: "请稍后再试" }, { status: 429 });
   }
   const topicName = request.nextUrl.searchParams.get("topic") ?? "default";
-  const cacheKey = `feed:${userId}:${topicName}`;
+  const keywordsParam = request.nextUrl.searchParams.get("keywords");
+  const maxParam = request.nextUrl.searchParams.get("max");
+  const cacheKey = `feed:${userId}:${topicName}:${keywordsParam ?? ""}:${maxParam ?? ""}`;
   const cached = cache.get(cacheKey);
   if (cached && cached.expires > Date.now()) {
     return NextResponse.json(cached.data);
   }
 
   const supabase = createClient(url, serviceKey);
-  const { data: topicRow } = await supabase
-    .from("intel_topics")
-    .select("keywords, max_per_push")
-    .eq("user_id", userId)
-    .eq("topic_name", topicName)
-    .single();
+  let keywords: string[] = [];
+  let maxPerPush = 10;
+
+  if (keywordsParam != null && keywordsParam.trim()) {
+    keywords = keywordsParam.split(/[,，\s]+/).map((k) => k.trim()).filter(Boolean).slice(0, 10);
+  } else {
+    const { data: topicRow } = await supabase
+      .from("intel_topics")
+      .select("keywords, max_per_push")
+      .eq("user_id", userId)
+      .eq("topic_name", topicName)
+      .single();
+    keywords = (topicRow?.keywords as string[]) ?? [];
+    maxPerPush = (topicRow?.max_per_push as number) ?? 10;
+  }
+  const m = parseInt(maxParam ?? "", 10);
+  if (!Number.isNaN(m) && m >= 1 && m <= 50) maxPerPush = m;
 
   let sources = DEFAULT_RSS_SOURCES;
   try {
@@ -73,9 +86,6 @@ export async function GET(request: NextRequest) {
   } catch {
     /* use default */
   }
-
-  const keywords = (topicRow?.keywords as string[]) ?? [];
-  const maxPerPush = (topicRow?.max_per_push as number) ?? 10;
 
   const items = await fetchAggregatedFeed(sources, {
     keywords: keywords.length > 0 ? keywords : undefined,

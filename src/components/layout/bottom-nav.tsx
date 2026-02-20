@@ -11,10 +11,8 @@ const items = [
   { href: "/log", key: "nav.log" },
   { href: "/community", key: "nav.community" },
   { href: "/members", key: "nav.members" },
-  { href: "/dm", key: "nav.dm" },
   { href: "/intel", key: "nav.intel" },
-  { href: "/settings", key: "nav.settings" },
-  { href: "/me", key: "nav.profile" }, // 个人中心，最后一项
+  { href: "/me", key: "nav.profile" }, // 个人中心，设定齿轮仅右上角显示
 ] as const;
 
 const iconSize = "w-6 h-6";

@@ -8,6 +8,8 @@ export const dynamic = "force-dynamic";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
 import { ProfileCard } from "@/components/profile/profile-card";
+import { getDisplayNameOrDid } from "@/lib/did";
+import { getDisplayNameOrDid } from "@/lib/did";
 import { UserDIDView } from "@/components/reputation/user-did-view";
 
 type Props = { params: Promise<{ id: string }> };
@@ -35,7 +37,7 @@ export default async function UserProfilePage({ params }: Props) {
       const supabase = createServerSupabase();
       const { data: p, error } = await supabase
         .from("user_profiles")
-        .select("display_name, bio, wallet_address, fid, custom_did, avatar_url, credit_score, jihe_coin_balance")
+        .select("id, display_name, bio, wallet_address, fid, custom_did, avatar_url, credit_score, jihe_coin_balance")
         .eq("id", id)
         .single();
       if (error || !p) {
@@ -47,7 +49,7 @@ export default async function UserProfilePage({ params }: Props) {
         .select("name, description, icon_url")
         .eq("user_id", id);
       profile = {
-        display_name: p.display_name ?? "匿名",
+        display_name: getDisplayNameOrDid({ id: p.id ?? id, display_name: p.display_name, fid: p.fid, custom_did: (p as { custom_did?: string | null }).custom_did }),
         bio: p.bio,
         wallet_address: p.wallet_address,
         fid: p.fid != null ? String(p.fid) : null,

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { TranslateButton } from "@/components/translate-button";
 import { getCurrentProfileId } from "@/lib/current-user";
-import { IconHeartOutline, IconHeartFilled, IconComment } from "@/components/layout/nav-icons";
+import { IconHeartOutline, IconHeartFilled, IconComment, IconReply, IconBookmarkOutline, IconBookmarkFilled } from "@/components/layout/nav-icons";
 
 type Post = {
   id: string;
@@ -27,6 +27,106 @@ type Post = {
   contract_text?: string;
   participants_count?: number;
 };
+
+type CommentType = {
+  id: string;
+  author_id: string;
+  author_name: string;
+  content: string;
+  created_at: string;
+  parent_id: string | null;
+  like_count: number;
+  liked: boolean;
+  saved: boolean;
+};
+
+function CommentItem({
+  comment,
+  postId,
+  currentUserId,
+  onRefetch,
+  onReply,
+}: {
+  comment: CommentType;
+  postId: string;
+  currentUserId: string | null;
+  onRefetch: () => void;
+  onReply: () => void;
+}) {
+  const [likeCount, setLikeCount] = useState(comment.like_count);
+  const [liked, setLiked] = useState(comment.liked);
+  const [saved, setSaved] = useState(comment.saved);
+
+  const toggleCommentLike = async () => {
+    if (!currentUserId) return;
+    if (liked) {
+      await fetch(`/api/comments/${comment.id}/like?userId=${currentUserId}`, { method: "DELETE" });
+      setLiked(false);
+      setLikeCount((c) => Math.max(0, c - 1));
+    } else {
+      await fetch(`/api/comments/${comment.id}/like`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: currentUserId }),
+      });
+      setLiked(true);
+      setLikeCount((c) => c + 1);
+    }
+    onRefetch();
+  };
+
+  const toggleCommentSave = async () => {
+    if (!currentUserId) return;
+    if (saved) {
+      await fetch(`/api/comments/${comment.id}/save?userId=${currentUserId}`, { method: "DELETE" });
+      setSaved(false);
+    } else {
+      await fetch(`/api/comments/${comment.id}/save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: currentUserId }),
+      });
+      setSaved(true);
+    }
+    onRefetch();
+  };
+
+  return (
+    <li className="rounded-lg border border-foreground/10 bg-black/30 px-3 py-2 text-sm">
+      <div className="flex items-center gap-2 text-xs text-foreground/60">
+        <Link href={`/u/${comment.author_id}`} className="font-medium text-foreground hover:text-accent">
+          {comment.author_name}
+        </Link>
+        <time>{new Date(comment.created_at).toLocaleString("zh-CN")}</time>
+      </div>
+      <p className="mt-1 whitespace-pre-wrap text-foreground/90">{comment.content}</p>
+      <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-foreground/60">
+        <button
+          type="button"
+          onClick={toggleCommentLike}
+          disabled={!currentUserId}
+          className="flex items-center gap-1 hover:text-accent disabled:opacity-50"
+        >
+          {liked ? <IconHeartFilled className="h-4 w-4 text-red-500" /> : <IconHeartOutline className="h-4 w-4" />}
+          <span>{likeCount}</span>
+        </button>
+        <button type="button" onClick={onReply} disabled={!currentUserId} className="flex items-center gap-1 hover:text-accent disabled:opacity-50">
+          <IconReply className="h-4 w-4" />
+          回复
+        </button>
+        <button
+          type="button"
+          onClick={toggleCommentSave}
+          disabled={!currentUserId}
+          className="flex items-center gap-1 hover:text-accent disabled:opacity-50"
+        >
+          {saved ? <IconBookmarkFilled className="h-4 w-4 text-accent" /> : <IconBookmarkOutline className="h-4 w-4" />}
+          收藏
+        </button>
+      </div>
+    </li>
+  );
+}
 
 type Props = { post: Post };
 
@@ -52,15 +152,17 @@ export function PostDetailView({ post }: Props) {
     },
   });
   const { data: comments = [], refetch: refetchComments } = useQuery({
-    queryKey: ["post-comments", post.id],
+    queryKey: ["post-comments", post.id, currentUserId],
     queryFn: async () => {
-      const res = await fetch(`/api/posts/${post.id}/comments`);
+      const res = await fetch(`/api/posts/${post.id}/comments?userId=${currentUserId ?? ""}`);
       if (!res.ok) return [];
-      return res.json() as Promise<{ id: string; author_id: string; author_name: string; content: string; created_at: string }[]>;
+      return res.json() as Promise<{ id: string; author_id: string; author_name: string; content: string; created_at: string; parent_id: string | null; like_count: number; liked: boolean; saved: boolean }[]>;
     },
   });
   const [commentInput, setCommentInput] = useState("");
   const [commentSending, setCommentSending] = useState(false);
+  const [commentsExpanded, setCommentsExpanded] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
 
   const toggleLike = async () => {
     if (!currentUserId) return;
@@ -82,13 +184,16 @@ export function PostDetailView({ post }: Props) {
     if (!content || !currentUserId || commentSending) return;
     setCommentSending(true);
     try {
+      const body: { author_id: string; content: string; parent_id?: string } = { author_id: currentUserId, content };
+      if (replyingTo) body.parent_id = replyingTo;
       const res = await fetch(`/api/posts/${post.id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ author_id: currentUserId, content }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         setCommentInput("");
+        setReplyingTo(null);
         refetchComments();
         refetchLike();
       }
@@ -162,12 +267,22 @@ export function PostDetailView({ post }: Props) {
 
   return (
     <article>
-      <Link
-        href="/community"
-        className="mb-6 inline-block text-xs text-accent/80 hover:text-accent"
-      >
-        ← {t("post.back")}
-      </Link>
+      <div className="mb-6 flex items-center justify-between gap-2">
+        <Link
+          href="/community"
+          className="inline-block text-xs text-accent/80 hover:text-accent"
+        >
+          ← {t("post.back")}
+        </Link>
+        {currentUserId === post.author_id && (
+          <Link
+            href={`/community/${post.id}/edit`}
+            className="rounded border border-foreground/20 px-2 py-1 text-xs text-foreground/70 hover:border-accent/40 hover:text-accent"
+          >
+            编辑
+          </Link>
+        )}
+      </div>
       <div className="flex items-center gap-2 text-xs text-foreground/60">
         <Link
           href={`/u/${post.author_id}`}
@@ -244,7 +359,7 @@ export function PostDetailView({ post }: Props) {
 
       <div className="mt-6">
         {post.type !== "stance" && <p className="text-xs font-medium text-foreground/60">{t("publisher.content")}（简介）</p>}
-        <div className={`whitespace-pre-wrap text-foreground/90 ${post.type === "stance" ? "text-base" : "mt-1 text-sm"}`}>
+        <div className={`whitespace-pre-wrap text-foreground/90 ${post.type === "stance" ? "text-sm" : "mt-1 text-xs"}`}>
           {post.content}
         </div>
         <TranslateButton text={post.content} />
@@ -285,18 +400,29 @@ export function PostDetailView({ post }: Props) {
       <div className="mt-6 border-t border-foreground/10 pt-6">
         <h3 className="mb-3 text-sm font-medium text-foreground/80">{t("community.comment")}</h3>
         <ul className="space-y-3">
-          {comments.map((c) => (
-            <li key={c.id} className="rounded-lg border border-foreground/10 bg-black/30 px-3 py-2 text-sm">
-              <div className="flex items-center gap-2 text-xs text-foreground/60">
-                <Link href={`/u/${c.author_id}`} className="font-medium text-foreground hover:text-accent">
-                  {c.author_name}
-                </Link>
-                <time>{new Date(c.created_at).toLocaleString("zh-CN")}</time>
-              </div>
-              <p className="mt-1 whitespace-pre-wrap text-foreground/90">{c.content}</p>
-            </li>
+          {(commentsExpanded ? comments : comments.slice(0, 1)).map((c) => (
+            <CommentItem
+              key={c.id}
+              comment={c}
+              postId={post.id}
+              currentUserId={currentUserId}
+              onRefetch={refetchComments}
+              onReply={() => {
+                setReplyingTo(c.id);
+                setCommentInput(`回复 ${c.author_name}: `);
+              }}
+            />
           ))}
         </ul>
+        {comments.length > 1 && !commentsExpanded && (
+          <button
+            type="button"
+            onClick={() => setCommentsExpanded(true)}
+            className="mt-2 text-xs text-accent hover:underline"
+          >
+            展开更多评论 ({comments.length})
+          </button>
+        )}
         {currentUserId ? (
           <div className="mt-4 flex gap-2">
             <input

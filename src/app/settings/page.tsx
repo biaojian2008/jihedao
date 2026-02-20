@@ -15,8 +15,11 @@ import { useLocale } from "@/lib/i18n/locale-context";
 import { AdminGuard } from "@/components/admin/admin-guard";
 import { ShareButton } from "@/components/share-button";
 
+const SHARE_TEXT = "欢迎来到高尔特峡谷——超级个体的交流协作平台";
+const SHARE_TITLE = "济和 DAO";
+
 export default function SettingsPage() {
-  const { t, locale, setLocale } = useLocale();
+  const { t } = useLocale();
   const [deferredPrompt, setDeferredPrompt] = useState<{ prompt: () => Promise<void> } | null>(null);
   const [standalone, setStandalone] = useState(false);
 
@@ -44,27 +47,10 @@ export default function SettingsPage() {
       <main className="mx-auto max-w-xl px-4 py-8 sm:px-6">
         <h1 className="mb-6 text-xl font-semibold text-foreground">{t("settings.title")}</h1>
 
-        <section className="mb-8 space-y-4">
-          <h2 className="text-sm font-medium text-foreground/80">{t("settings.language")}</h2>
-          <div className="flex gap-2">
-            {(["zh", "en", "ja"] as const).map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => setLocale(l)}
-                className={`rounded-lg border px-4 py-2 text-sm ${
-                  locale === l ? "border-accent bg-accent/10 text-accent" : "border-foreground/20 text-foreground/70 hover:border-accent/40"
-                }`}
-              >
-                {l === "zh" ? "中文" : l === "en" ? "English" : "日本語"}
-              </button>
-            ))}
-          </div>
-        </section>
-
+        {/* 分享与安装 */}
         <section className="mb-8 space-y-4">
           <h2 className="text-sm font-medium text-foreground/80">{t("settings.share")}</h2>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {!standalone && deferredPrompt && (
               <button
                 type="button"
@@ -75,14 +61,38 @@ export default function SettingsPage() {
               </button>
             )}
             {standalone && <span className="rounded-lg border border-foreground/20 px-4 py-2 text-sm text-foreground/60">已安装到桌面</span>}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-foreground/70">{t("settings.shareToFriend")}</span>
-              <ShareButton url={siteUrl} title="济和 DAO" text="协作 · 信用 · 社交 · 数据主权的去中心化实验场" size="md" />
+            <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icon-192.png" alt="" className="h-10 w-10 rounded-lg object-contain" />
+              <div className="flex flex-col gap-1">
+                <span className="text-sm text-foreground/70">{t("settings.shareToFriend")}</span>
+                <ShareButton url={siteUrl} title={SHARE_TITLE} text={SHARE_TEXT} size="md" />
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="mb-8">
+        {/* 关于 */}
+        <section className="mb-8 space-y-3">
+          <h2 className="text-sm font-medium text-foreground/80">关于</h2>
+          <p className="text-xs leading-relaxed text-foreground/70">
+            济和 DAO 是协作 · 信用 · 社交 · 数据主权的去中心化实验场。欢迎来到高尔特峡谷，与超级个体一起交流协作。
+          </p>
+        </section>
+
+        {/* 版本与链接 */}
+        <section className="mb-8 space-y-3">
+          <h2 className="text-sm font-medium text-foreground/80">更多</h2>
+          <div className="flex flex-wrap gap-2">
+            <a href="/community" className="text-xs text-foreground/60 hover:text-accent">社区动态</a>
+            <a href="/intel" className="text-xs text-foreground/60 hover:text-accent">情报入口</a>
+            <a href="/members" className="text-xs text-foreground/60 hover:text-accent">成员</a>
+          </div>
+          <p className="text-[10px] text-foreground/40">版本 0.1 · 更多设定敬请期待</p>
+        </section>
+
+        {/* 后台管理 - 置底，仅管理员可见 */}
+        <section className="mt-8 border-t border-foreground/10 pt-6">
           <AdminGuard fallback={null}>
             <Link
               href="/admin"
@@ -92,8 +102,6 @@ export default function SettingsPage() {
             </Link>
           </AdminGuard>
         </section>
-
-        <p className="text-xs text-foreground/40">{t("settings.hint")}</p>
       </main>
     </div>
   );

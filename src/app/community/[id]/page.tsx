@@ -6,6 +6,8 @@ import { createServerSupabase } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
 import { PostDetailView } from "@/components/community/post-detail-view";
 import { resolveText, type Locale } from "@/lib/i18n/resolve";
+import { getDisplayNameOrDid } from "@/lib/did";
+import { getDisplayNameOrDid } from "@/lib/did";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -51,7 +53,7 @@ export default async function PostDetailPage({ params }: Props) {
       }
       const { data: profile } = await supabase
         .from("user_profiles")
-        .select("display_name, credit_score")
+        .select("id, display_name, fid, custom_did, credit_score")
         .eq("id", data.author_id)
         .single();
       const { count } = await supabase
@@ -67,7 +69,7 @@ export default async function PostDetailPage({ params }: Props) {
         content: resolveText(data.content, locale),
         tags: data.tags,
         created_at: data.created_at,
-        author_name: (profile?.display_name as string) ?? "匿名",
+        author_name: profile ? getDisplayNameOrDid({ id: profile.id, display_name: profile.display_name, fid: profile.fid, custom_did: (profile as { custom_did?: string | null }).custom_did }) : getDisplayNameOrDid({ id: data.author_id }),
         author_credit: (profile?.credit_score as number) ?? 0,
         author_collateral: Number((data as { author_collateral?: number }).author_collateral) || 0,
         participant_freeze: Number((data as { participant_freeze?: number }).participant_freeze) || 0,

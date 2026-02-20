@@ -9,11 +9,11 @@ export function HomePublishButton() {
   const { t } = useLocale();
   return (
     <>
-      <div className="fixed bottom-20 right-4 z-40 md:bottom-6">
+      <div className="fixed bottom-20 right-2 z-30 md:bottom-6 md:right-3">
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-xl font-bold text-black shadow-lg transition hover:opacity-90"
+          className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/80 text-base font-bold text-black shadow transition hover:opacity-90 md:h-8 md:w-8"
           title={t("community.publish")}
           aria-label={t("community.publish")}
         >

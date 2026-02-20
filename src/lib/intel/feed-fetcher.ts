@@ -9,6 +9,7 @@ export type IntelItem = {
   link: string;
   source: string;
   pubDate: string | null;
+  content?: string; // 正文摘要，用于关键词匹配
 };
 
 const parser = new Parser({ timeout: 10000 });
@@ -28,10 +29,17 @@ function normalizeTitle(t: string): string {
 
 function scoreRelevance(item: IntelItem, keywords: string[]): number {
   if (keywords.length === 0) return 1;
-  const text = (item.title + " " + (item.source || "")).toLowerCase();
+  const text = (
+    (item.title || "") +
+    " " +
+    (item.source || "") +
+    " " +
+    (item.content || "")
+  ).toLowerCase();
   let score = 0;
   for (const kw of keywords) {
-    if (text.includes(kw.toLowerCase())) score += 1;
+    const k = kw.trim().toLowerCase();
+    if (k && text.includes(k)) score += 1;
   }
   return score > 0 ? score / keywords.length : 0;
 }
@@ -44,6 +52,7 @@ export async function fetchAggregatedFeed(
   } = {}
 ): Promise<IntelItem[]> {
   const { keywords = [], maxItems = 10 } = options;
+  const hasKeywords = keywords.some((k) => k.trim().length > 0);
   const seenUrls = new Set<string>();
   const seenTitles = new Set<string>();
   const items: IntelItem[] = [];
@@ -62,11 +71,15 @@ export async function fetchAggregatedFeed(
         seenUrls.add(urlKey);
         seenTitles.add(titleKey);
         const pubDate = it.pubDate || it.isoDate || null;
+        const itAny = it as { content?: string; contentSnippet?: string; description?: string };
+    const rawContent = itAny.content || itAny.contentSnippet || itAny.description || "";
+    const content = rawContent.replace(/<[^>]+>/g, " ").slice(0, 2000);
         items.push({
           title,
           link,
           source: srcName,
           pubDate,
+          content,
         });
       }
     } catch {
@@ -74,14 +87,13 @@ export async function fetchAggregatedFeed(
     }
   }
 
-  items.sort((a, b) => {
-    const relA = scoreRelevance(a, keywords);
-    const relB = scoreRelevance(b, keywords);
-    if (relA !== relB) return relB - relA;
-    const timeA = a.pubDate ? new Date(a.pubDate).getTime() : 0;
-    const timeB = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+  const scored = items.map((item) => ({ item, score: scoreRelevance(item, keywords) }));
+  const filtered = hasKeywords ? scored.filter((x) => x.score > 0) : scored;
+  filtered.sort((a, b) => {
+    if (a.score !== b.score) return b.score - a.score;
+    const timeA = a.item.pubDate ? new Date(a.item.pubDate).getTime() : 0;
+    const timeB = b.item.pubDate ? new Date(b.item.pubDate).getTime() : 0;
     return timeB - timeA;
   });
-
-  return items.slice(0, maxItems);
+  return filtered.map((x) => x.item).slice(0, maxItems);
 }

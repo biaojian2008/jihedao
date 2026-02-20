@@ -23,14 +23,16 @@ export function GroupsList() {
   const [createName, setCreateName] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const { data: groups = [], isLoading } = useQuery({
+  const { data: groups = [], isLoading, isError, error } = useQuery({
     queryKey: ["groups", profileId],
     queryFn: async () => {
       const res = await fetch("/api/groups", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed");
-      return res.json() as Promise<Group[]>;
+      const data = await res.json();
+      if (!res.ok) throw new Error(typeof data?.error === "string" ? data.error : "群组功能暂不可用");
+      return data as Group[];
     },
     enabled: !!profileId,
+    retry: false,
   });
 
   const handleCreate = async () => {
@@ -66,6 +68,15 @@ export function GroupsList() {
 
   if (isLoading) {
     return <p className="text-sm text-foreground/60">{t("common.loading")}</p>;
+  }
+
+  if (isError) {
+    return (
+      <div className="rounded-xl border border-foreground/20 bg-foreground/[0.02] p-4">
+        <p className="text-sm text-foreground/70">{error?.message ?? "群组功能暂不可用"}</p>
+        <p className="mt-2 text-xs text-foreground/50">如需开启，请在 Supabase 执行迁移 20250223_groups.sql</p>
+      </div>
+    );
   }
 
   return (

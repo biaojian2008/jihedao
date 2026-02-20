@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getDisplayDid } from "@/lib/did";
+import { getDisplayDid, getDisplayNameOrDid } from "@/lib/did";
 import { getCurrentProfileId } from "@/lib/current-user";
 import { useLocale } from "@/lib/i18n/locale-context";
 import {
@@ -25,11 +25,12 @@ type Member = {
 
 type Props = {
   member: Member;
+  lastMessage?: string;
   isBlockedTab?: boolean;
   onUnblock?: () => void;
 };
 
-export function MemberCard({ member, isBlockedTab, onUnblock }: Props) {
+export function MemberCard({ member, lastMessage, isBlockedTab, onUnblock }: Props) {
   const { t } = useLocale();
   const currentId = getCurrentProfileId();
   const isOwn = currentId === member.id;
@@ -113,7 +114,7 @@ export function MemberCard({ member, isBlockedTab, onUnblock }: Props) {
   return (
     <div className="rounded-xl border border-foreground/10 bg-black/40 p-4">
       <div className="flex items-start gap-3">
-        <Link href={`/dm?with=${member.id}`} className="shrink-0" title={t("profile.dm")}>
+        <Link href={`/u/${member.id}`} className="shrink-0" title="个人名片">
           {member.avatar_url ? (
             <img
               src={member.avatar_url}
@@ -125,12 +126,25 @@ export function MemberCard({ member, isBlockedTab, onUnblock }: Props) {
           )}
         </Link>
         <div className="min-w-0 flex-1">
-          <Link href={`/dm?with=${member.id}`} className="font-medium text-foreground hover:text-accent">
-            {member.display_name ?? "匿名"}
-          </Link>
-          {displayDid && (
-            <p className="mt-0.5 font-mono text-[10px] text-foreground/60 break-all">{displayDid}</p>
-          )}
+          <div className="flex items-start justify-between gap-2">
+            <Link href={`/dm?with=${member.id}`} className="min-w-0 flex-1">
+              <span className="font-medium text-foreground hover:text-accent">
+                {getDisplayNameOrDid(member)}
+              </span>
+              {displayDid && (
+                <p className="mt-0.5 font-mono text-[10px] text-foreground/60 break-all">{displayDid}</p>
+              )}
+            </Link>
+            {lastMessage ? (
+              <Link
+                href={`/dm?with=${member.id}`}
+                className="shrink-0 max-w-[45%] truncate text-[11px] text-foreground/60 hover:text-accent"
+                title={lastMessage}
+              >
+                {lastMessage}
+              </Link>
+            ) : null}
+          </div>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-foreground/70">
             <span>{t("profile.credit")} {member.credit_score}</span>
             <span>·</span>
@@ -185,7 +199,7 @@ export function MemberCard({ member, isBlockedTab, onUnblock }: Props) {
           </div>
         </div>
         {isBlockedTab && (
-          <span className="shrink-0 rounded bg-amber-500/20 px-2 py-0.5 text-[10px] text-amber-400">
+          <span className="shrink-0 self-start rounded bg-amber-500/20 px-2 py-0.5 text-[10px] text-amber-400">
             已屏蔽
           </span>
         )}

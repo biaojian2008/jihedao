@@ -211,6 +211,7 @@ export function CommunityFeed() {
             <option value="project">{t("community.type.project")}</option>
             <option value="task">{t("community.type.task")}</option>
             <option value="product">{t("community.type.product")}</option>
+            <option value="service">{t("community.type.service")}</option>
             <option value="course">{t("community.type.course")}</option>
             <option value="demand">{t("community.type.demand")}</option>
             <option value="stance">{t("community.type.stance")}</option>
@@ -243,7 +244,7 @@ export function CommunityFeed() {
                     </div>
                     <div className="mt-2 flex items-start gap-2 flex-wrap">
                       <Link href={`/community/${post.id}`} className="min-w-0 flex-1">
-                        <h2 className="text-base font-semibold text-foreground hover:text-accent">
+                        <h2 className="text-sm font-semibold text-foreground hover:text-accent">
                           {post.title}
                         </h2>
                       </Link>
@@ -254,19 +255,29 @@ export function CommunityFeed() {
                       />
                     </div>
                     <Link href={`/community/${post.id}`} className="mt-1 block">
-                      <p className="line-clamp-2 text-sm text-foreground/70">{post.content}</p>
+                      <p className="line-clamp-2 text-xs text-foreground/70">{post.content}</p>
                     </Link>
                   </div>
                   {tab === "mine" && profileId === post.author_id && (
-                    <button
-                      type="button"
-                      onClick={(e) => deletePost(post.id, e)}
-                      className="shrink-0 rounded p-2 text-foreground/50 hover:bg-red-500/20 hover:text-red-400"
-                      aria-label={t("community.delete") || "删除"}
-                      title={t("community.delete") || "删除"}
-                    >
-                      <IconTrash className="h-4 w-4" />
-                    </button>
+                    <div className="flex shrink-0 gap-1">
+                      <Link
+                        href={`/community/${post.id}/edit`}
+                        className="rounded p-2 text-foreground/50 hover:bg-foreground/10 hover:text-accent"
+                        aria-label="编辑"
+                        title="编辑"
+                      >
+                        编辑
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={(e) => deletePost(post.id, e)}
+                        className="rounded p-2 text-foreground/50 hover:bg-red-500/20 hover:text-red-400"
+                        aria-label={t("community.delete") || "删除"}
+                        title={t("community.delete") || "删除"}
+                      >
+                        <IconTrash className="h-4 w-4" />
+                      </button>
+                    </div>
                   )}
                 </div>
                 <div className="mt-3 flex items-center gap-4 text-xs">
@@ -310,7 +321,10 @@ export function CommunityFeed() {
                   </button>
                 </div>
                 {openCommentPostId === post.id && (
-                  <div className="mt-3 rounded-lg border border-foreground/10 bg-black/30 p-3">
+                  <div
+                    className="mt-3 rounded-lg border border-foreground/10 bg-black/30 p-3"
+                    style={{ fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif' }}
+                  >
                     {openPostComments.length > 0 && (
                       <ul className="mb-3 max-h-32 space-y-1.5 overflow-y-auto text-xs">
                         {openPostComments.map((c) => (
@@ -341,7 +355,10 @@ export function CommunityFeed() {
                             {commentSending === post.id ? "…" : t("community.commentSubmit") || "发送"}
                           </button>
                         </div>
-                        <div className="flex flex-wrap gap-1">
+                        <div
+                          className="flex flex-wrap gap-1"
+                          style={{ fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif' }}
+                        >
                           {COMMENT_EMOJIS.map((emoji) => (
                             <button
                               key={emoji}

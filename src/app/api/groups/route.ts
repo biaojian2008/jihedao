@@ -29,7 +29,8 @@ export async function GET(request: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const supabase = createClient(url, serviceKey);
-  const { data: memberships } = await supabase
+  try {
+  const { data: memberships, error: memErr } = await supabase
     .from("group_members")
     .select("group_id")
     .eq("user_id", userId);
@@ -78,7 +79,10 @@ export async function POST(request: NextRequest) {
     .insert({ name, created_by: userId })
     .select("id, name, created_by, created_at")
     .single();
-  if (groupErr) return NextResponse.json({ error: groupErr.message }, { status: 500 });
+  if (groupErr) {
+    const msg = String(groupErr.message || "").includes("groups") ? "群组功能需要先执行数据库迁移（20250223_groups.sql），请联系管理员" : groupErr.message;
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 
   const { error: memberErr } = await supabase
     .from("group_members")

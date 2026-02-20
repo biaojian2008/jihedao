@@ -1,11 +1,14 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getDisplayNameOrDid } from "@/lib/did";
 
 type Member = {
   id: string;
   display_name: string | null;
   avatar_url: string | null;
+  fid?: string | null;
+  custom_did?: string | null;
 };
 
 type Props = {
@@ -72,7 +75,7 @@ export function AddMemberModal({ groupId, existingIds, onClose, onAdded }: Props
                     ) : (
                       <div className="h-8 w-8 rounded-full bg-foreground/20" />
                     )}
-                    <span className="text-sm">{m.display_name ?? "匿名"}</span>
+                    <span className="text-sm">{getDisplayNameOrDid(m)}</span>
                   </button>
                 </li>
               ))}

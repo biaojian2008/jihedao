@@ -6,7 +6,7 @@ import { getCurrentProfileId } from "@/lib/current-user";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { TranslateButton } from "@/components/translate-button";
 import { TransferModal } from "@/components/transfer/transfer-modal";
-import { getDisplayDid } from "@/lib/did";
+import { getDisplayDid, getDisplayNameOrDid } from "@/lib/did";
 import { IconMic } from "@/components/layout/nav-icons";
 
 type Message = {
@@ -34,16 +34,25 @@ type Props = { conversationId: string };
 const IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i;
 const VIDEO_EXT = /\.(mp4|webm|mov|ogg|avi)(\?|$)/i;
 
-/** Web Speech API: not in all TS libs */
-type SpeechResultItem = { transcript: string };
-type SpeechResult = { 0: SpeechResultItem; isFinal: boolean };
+/** Web Speech API */
+interface SpeechRecognitionResult {
+  length: number;
+  isFinal: boolean;
+  0?: { transcript: string };
+  item?(i: number): { transcript: string };
+}
+interface SpeechRecognitionResultList {
+  length: number;
+  item?(i: number): SpeechRecognitionResult;
+  [i: number]: SpeechRecognitionResult;
+}
 interface SpeechRecognitionInstance {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
-  onresult: (e: { results: SpeechResult[] }) => void;
+  onresult: (e: { results: SpeechRecognitionResultList }) => void;
   onend: () => void;
-  onerror: () => void;
+  onerror: (e: { error: string }) => void;
   start: () => void;
   stop: () => void;
 }
@@ -64,7 +73,6 @@ export function ChatView({ conversationId }: Props) {
   const [sending, setSending] = useState(false);
   const [otherUser, setOtherUser] = useState<{ id: string; display_name: string } | null>(null);
   const [otherProfile, setOtherProfile] = useState<OtherProfile | null>(null);
-  const [headerCollapsed, setHeaderCollapsed] = useState(true);
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
@@ -95,7 +103,7 @@ export function ChatView({ conversationId }: Props) {
         if (!data?.participant_ids?.length || !data?.participant_names) return;
         const otherId = data.participant_ids.find((id: string) => id !== profileId);
         if (otherId) {
-          setOtherUser({ id: otherId, display_name: data.participant_names[otherId] ?? "匿名" });
+          setOtherUser({ id: otherId, display_name: data.participant_names[otherId] ?? getDisplayNameOrDid({ id: otherId }) });
         }
       });
   }, [conversationId, profileId]);
@@ -139,23 +147,51 @@ export function ChatView({ conversationId }: Props) {
   };
 
   const startVoiceInput = () => {
-    const win = typeof window !== "undefined" ? (window as unknown as { SpeechRecognition?: new () => SpeechRecognitionInstance; webkitSpeechRecognition?: new () => SpeechRecognitionInstance }) : null;
-    const SR = win && (win.SpeechRecognition || win.webkitSpeechRecognition);
-    if (!SR || listening) return;
+    if (listening) return;
+    if (typeof window === "undefined") return;
+    const win = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionInstance; webkitSpeechRecognition?: new () => SpeechRecognitionInstance };
+    const SR = win.SpeechRecognition || win.webkitSpeechRecognition;
+    if (!SR) {
+      alert("您的浏览器不支持语音识别，请使用 Chrome 或 Edge 最新版。");
+      return;
+    }
+    if (location.protocol !== "https:" && location.hostname !== "localhost") {
+      alert("语音识别需在 HTTPS 环境下使用，请使用 https 访问。");
+      return;
+    }
     const rec = new SR() as SpeechRecognitionInstance;
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = "zh-CN";
     rec.onresult = (e) => {
-      const last = e.results.length - 1;
-      const text = e.results[last][0].transcript;
-      if (e.results[last].isFinal) setInput((s) => (s ? s + " " + text : text));
+      const results = e.results;
+      const len = results.length;
+      if (len === 0) return;
+      const lastIdx = len - 1;
+      const result = results[lastIdx] ?? results.item?.(lastIdx);
+      if (!result) return;
+      const alt = result[0] ?? result.item?.(0);
+      const transcript = alt?.transcript?.trim();
+      if (transcript && result.isFinal) {
+        setInput((s) => (s ? `${s} ${transcript}` : transcript));
+      }
     };
     rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
-    rec.start();
-    setListening(true);
-    recognitionRef.current = rec;
+    rec.onerror = (e) => {
+      setListening(false);
+      const err = e?.error || "unknown";
+      if (err === "not-allowed") alert("请允许麦克风权限以使用语音输入。");
+      else if (err === "no-speech") return; // 无语音，正常结束
+      else if (err === "network") alert("网络错误，请检查网络后重试。");
+    };
+    try {
+      rec.start();
+      setListening(true);
+      recognitionRef.current = rec;
+    } catch (err) {
+      setListening(false);
+      alert("启动语音识别失败，请重试。");
+    }
   };
 
   const stopVoiceInput = () => {
@@ -200,45 +236,24 @@ export function ChatView({ conversationId }: Props) {
     );
   }
 
-  const displayDid = otherProfile ? getDisplayDid(otherProfile.fid, otherProfile.custom_did) : "";
-
   return (
     <div className="mx-auto flex max-w-xl flex-col px-4" style={{ height: "calc(100vh - 8rem)", paddingBottom: "env(safe-area-inset-bottom, 0)" }}>
       <div className="mb-2 shrink-0">
-        <button
-          type="button"
-          onClick={() => setHeaderCollapsed((c) => !c)}
-          className="flex w-full items-center gap-3 rounded-lg border border-foreground/10 bg-black/40 p-2 text-left"
-        >
-          <Link href="/dm" className="shrink-0 text-xs text-accent hover:underline" onClick={(e) => e.stopPropagation()}>
+        <div className="flex w-full items-center gap-3 rounded-lg border border-foreground/10 bg-black/40 p-2">
+          <Link href="/dm" className="shrink-0 text-xs text-accent hover:underline">
             ← {t("dm.backList")}
           </Link>
-          {otherUser && (
-            <>
-              {otherProfile?.avatar_url ? (
-                <img src={otherProfile.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+          {otherUser && otherProfile && (
+            <Link href={`/u/${otherProfile.id}`} className="flex min-w-0 flex-1 items-center gap-2">
+              {otherProfile.avatar_url ? (
+                <img src={otherProfile.avatar_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
               ) : (
-                <div className="h-10 w-10 rounded-full bg-foreground/20" />
+                <div className="h-10 w-10 shrink-0 rounded-full bg-foreground/20" />
               )}
-              <div className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium text-foreground">{otherUser.display_name}</span>
-                {!headerCollapsed && displayDid && <span className="block truncate font-mono text-[10px] text-foreground/60">{displayDid}</span>}
-              </div>
-              <span className="text-foreground/50">{headerCollapsed ? "▼" : "▲"}</span>
-            </>
+              <span className="truncate text-sm font-medium text-foreground">{otherUser.display_name}</span>
+            </Link>
           )}
-        </button>
-        {!headerCollapsed && otherProfile && (
-          <div className="mt-2 rounded-lg border border-foreground/10 bg-black/40 p-3 text-xs text-foreground/80">
-            {displayDid && <p><span className="text-foreground/50">DID</span> {displayDid}</p>}
-            {otherProfile.wallet_address && <p className="mt-1 truncate"><span className="text-foreground/50">钱包</span> {otherProfile.wallet_address}</p>}
-            {otherProfile.credit_score != null && <p className="mt-1"><span className="text-foreground/50">信誉分</span> {otherProfile.credit_score}</p>}
-            <div className="mt-2 flex gap-2">
-              <button type="button" onClick={() => { setShowTransfer(true); setHeaderCollapsed(true); }} className="rounded border border-accent/60 px-2 py-1 text-accent">{t("profile.transfer")}</button>
-              <Link href={`/u/${otherProfile.id}`} className="rounded border border-foreground/30 px-2 py-1 hover:bg-foreground/10">个人名片</Link>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
       <div className="flex-1 space-y-3 overflow-y-auto">
         {messages.map((m) => {
@@ -331,44 +346,44 @@ export function ChatView({ conversationId }: Props) {
             </div>
           </div>
         )}
-        <div className="flex items-end gap-2">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => (listening ? stopVoiceInput() : startVoiceInput())}
+            className={`shrink-0 rounded p-1 ${listening ? "bg-red-500/20 text-red-400" : "text-foreground/60 hover:bg-foreground/10"}`}
+            aria-label="语音"
+          >
+            <IconMic className="h-3.5 w-3.5" />
+          </button>
           <input
             type="text"
             placeholder={t("dm.inputPlaceholder")}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
-            className="min-w-0 flex-1 rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50 focus:border-accent/60 focus:outline-none"
+            className="min-w-0 flex-[1_1_0%] rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50 focus:border-accent/60 focus:outline-none"
           />
           <button
             type="button"
-            onClick={() => { setShowPlusMenu((v) => !v); setShowEmoji(false); }}
-            className="shrink-0 rounded-lg border border-foreground/20 p-2 text-foreground/70 hover:bg-foreground/10"
-            aria-label="更多"
-          >
-            +
-          </button>
-          <button
-            type="button"
-            onClick={listening ? stopVoiceInput : startVoiceInput}
-            className={`shrink-0 rounded-lg border p-2 ${listening ? "border-red-500/60 bg-red-500/20 text-red-400" : "border-foreground/20 text-foreground/70 hover:bg-foreground/10"}`}
-            aria-label="语音输入"
-          >
-            <IconMic className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
             onClick={() => { setShowEmoji((v) => !v); setShowPlusMenu(false); }}
-            className="shrink-0 rounded-lg border border-foreground/20 p-2 text-foreground/70 hover:bg-foreground/10"
+            className="shrink-0 rounded p-1 text-foreground/60 hover:bg-foreground/10"
             aria-label="表情"
           >
-            😀
+            <span className="text-sm leading-none">😀</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { setShowPlusMenu((v) => !v); setShowEmoji(false); }}
+            className="shrink-0 rounded p-1 text-foreground/60 hover:bg-foreground/10"
+            aria-label="更多"
+          >
+            <span className="text-xs font-medium">+</span>
           </button>
           <button
             type="button"
             onClick={send}
             disabled={sending || !input.trim()}
-            className="shrink-0 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+            className="shrink-0 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-black disabled:opacity-50"
           >
             {t("dm.send")}
           </button>

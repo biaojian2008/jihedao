@@ -32,11 +32,16 @@ export default function IntelPage() {
     }
   }, []);
 
-  const fetchFeed = useCallback(async () => {
+  const fetchFeed = useCallback(async (searchKw?: string) => {
     setLoadingFeed(true);
     setFeedError(null);
     try {
-      const r = await fetch("/api/intel/feed?topic=default", { credentials: "include" });
+      const params = new URLSearchParams();
+      params.set("topic", "default");
+      const kw = (searchKw ?? keywords).trim();
+      if (kw) params.set("keywords", kw);
+      params.set("max", String(maxPerPush));
+      const r = await fetch(`/api/intel/feed?${params}`, { credentials: "include" });
       const data = await r.json();
       if (!r.ok) {
         setFeedError(typeof data?.error === "string" ? data.error : "Failed to fetch");
@@ -47,7 +52,7 @@ export default function IntelPage() {
     } finally {
       setLoadingFeed(false);
     }
-  }, []);
+  }, [keywords, maxPerPush]);
 
   useEffect(() => {
     if (ready && authenticated) fetchConfig();
@@ -76,11 +81,13 @@ export default function IntelPage() {
         alert(e?.error ?? "保存失败");
         return;
       }
-      await fetchFeed();
+      await fetchFeed(keywords.trim());
     } finally {
       setSaving(false);
     }
   };
+
+  const handleSearch = () => fetchFeed(keywords.trim());
 
   if (!ready) {
     return (
@@ -154,14 +161,24 @@ export default function IntelPage() {
         {/* 推送列表 */}
         <div className="flex items-center justify-between gap-2 mb-3">
           <h2 className="text-sm font-medium text-foreground">{t("intel.feed")}</h2>
-          <button
-            type="button"
-            onClick={fetchFeed}
-            disabled={loadingFeed}
-            className="rounded border border-accent/50 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 disabled:opacity-50"
-          >
-            {t("intel.refresh")}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleSearch}
+              disabled={loadingFeed}
+              className="rounded border border-accent bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent hover:text-black disabled:opacity-50"
+            >
+              搜索
+            </button>
+            <button
+              type="button"
+              onClick={() => fetchFeed("")}
+              disabled={loadingFeed}
+              className="rounded border border-foreground/30 px-3 py-1.5 text-xs font-medium text-foreground/70 hover:bg-foreground/10 disabled:opacity-50"
+            >
+              {t("intel.refresh")}
+            </button>
+          </div>
         </div>
 
         {loadingFeed ? (
@@ -178,11 +195,11 @@ export default function IntelPage() {
                   href={item.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block font-medium text-foreground hover:text-accent"
+                  className="block text-xs font-medium text-foreground hover:text-accent"
                 >
                   {item.title}
                 </a>
-                <p className="mt-1 flex flex-wrap gap-x-3 text-xs text-foreground/60">
+                <p className="mt-1 flex flex-wrap gap-x-3 text-[10px] text-foreground/60">
                   <span>{item.source}</span>
                   <span>{item.pubDate}</span>
                 </p>
@@ -199,7 +216,7 @@ export default function IntelPage() {
 
         {/* 友情链接：自由意志 / 自由至上 / Web3 / 超级个体 */}
         <div className="mt-8">
-          <h3 className="mb-3 text-sm font-medium text-foreground/80">{t("intel.friendLinks")}</h3>
+          <h3 className="mb-3 text-sm font-medium text-accent">{t("intel.friendLinks")}</h3>
           <div className="flex flex-wrap gap-2">
             {[
               { name: "Mises Institute", url: "https://mises.org" },
@@ -209,7 +226,7 @@ export default function IntelPage() {
               { name: "FEE", url: "https://fee.org" },
               { name: "Ayn Rand Institute", url: "https://aynrand.org" },
             ].map((l) => (
-              <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="rounded border border-foreground/20 px-3 py-1.5 text-xs text-foreground/70 hover:border-accent/40 hover:text-accent">
+              <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="rounded border border-accent/50 px-3 py-1.5 text-xs text-accent hover:bg-accent/10 hover:border-accent">
                 {l.name}
               </a>
             ))}
@@ -218,7 +235,7 @@ export default function IntelPage() {
 
         {/* 书籍 */}
         <div className="mt-6">
-          <h3 className="mb-3 text-sm font-medium text-foreground/80">{t("intel.books")}</h3>
+          <h3 className="mb-3 text-sm font-medium text-accent">{t("intel.books")}</h3>
           <div className="flex flex-wrap gap-2">
             {[
               { name: "主权个人", url: "https://en.wikipedia.org/wiki/The_Sovereign_Individual" },
@@ -228,7 +245,7 @@ export default function IntelPage() {
               { name: "The Sovereign Individual", url: "https://www.amazon.com/dp/0684832720" },
               { name: "What Has Government Done", url: "https://mises.org/library/what-government-has-done-our-money" },
             ].map((l) => (
-              <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="rounded border border-foreground/20 px-3 py-1.5 text-xs text-foreground/70 hover:border-accent/40 hover:text-accent">
+              <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="rounded border border-accent/50 px-3 py-1.5 text-xs text-accent hover:bg-accent/10 hover:border-accent">
                 {l.name}
               </a>
             ))}
@@ -237,7 +254,7 @@ export default function IntelPage() {
 
         {/* 开源社区 */}
         <div className="mt-6 mb-8">
-          <h3 className="mb-3 text-sm font-medium text-foreground/80">{t("intel.opensource")}</h3>
+          <h3 className="mb-3 text-sm font-medium text-accent">{t("intel.opensource")}</h3>
           <div className="flex flex-wrap gap-2">
             {[
               { name: "GitHub", url: "https://github.com" },
@@ -247,7 +264,7 @@ export default function IntelPage() {
               { name: "Apache", url: "https://www.apache.org" },
               { name: "CNCF", url: "https://www.cncf.io" },
             ].map((l) => (
-              <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="rounded border border-foreground/20 px-3 py-1.5 text-xs text-foreground/70 hover:border-accent/40 hover:text-accent">
+              <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="rounded border border-accent/50 px-3 py-1.5 text-xs text-accent hover:bg-accent/10 hover:border-accent">
                 {l.name}
               </a>
             ))}

@@ -13,10 +13,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "济和 DAO",
-  description: "协作 · 信用 · 社交 · 数据主权 的去中心化实验场",
+  title: "高尔特峡谷——超级个体的交流协作平台",
+  description: "欢迎来到高尔特峡谷——超级个体的交流协作平台",
   manifest: "/manifest.json",
-  appleWebApp: { capable: true, title: "济和 DAO" },
+  appleWebApp: { capable: true, title: "高尔特峡谷" },
+  openGraph: {
+    title: "欢迎来到高尔特峡谷——超级个体的交流协作平台",
+    description: "超级个体的交流协作平台",
+  },
   themeColor: "#00ff00",
   icons: {
     icon: [

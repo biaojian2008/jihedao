@@ -2,7 +2,14 @@
  * 个人中心 DID 展示与校验：
  * - Farcaster 登录：使用 Farcaster DID did:farcaster:{fid}
  * - 非 Farcaster：可自定义 did:jihe:{handle}，handle 需全局唯一（前端校验 + API 查重）
+ * - 未设置时：系统分配 did:jihe:user_{id前8位}
  */
+
+/** 系统分配 DID（当用户未设置 custom_did 且无 Farcaster 时） */
+export function getSystemDid(profileId: string): string {
+  if (!profileId || profileId.length < 8) return "";
+  return `did:jihe:user_${profileId.replace(/-/g, "").slice(0, 8)}`;
+}
 
 /** Farcaster 标准：did:farcaster:<fid>；fid 可能为数字或字符串（DB/API 返回不一） */
 export function getDisplayDid(fid: string | number | null | undefined, customDid: string | null | undefined): string {
@@ -16,6 +23,20 @@ export function getDisplayDid(fid: string | number | null | undefined, customDid
     return `did:jihe:${customStr.toLowerCase()}`;
   }
   return "";
+}
+
+/** 用于展示：优先 display_name，否则 DID（含系统分配） */
+export function getDisplayNameOrDid(profile: {
+  id: string;
+  display_name?: string | null;
+  fid?: string | number | null;
+  custom_did?: string | null;
+}): string {
+  const name = profile?.display_name?.trim();
+  if (name) return name;
+  const did = getDisplayDid(profile?.fid, profile?.custom_did);
+  if (did) return did;
+  return getSystemDid(profile?.id ?? "");
 }
 
 /**

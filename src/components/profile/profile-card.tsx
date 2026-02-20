@@ -5,12 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { useLocale } from "@/lib/i18n/locale-context";
-import { TranslateButton } from "@/components/translate-button";
-import { getDisplayDid } from "@/lib/did";
+import { getDisplayDid, getDisplayNameOrDid, getSystemDid } from "@/lib/did";
 import { getCurrentProfileId, setCurrentProfileId } from "@/lib/current-user";
 import { getFarcasterFromPrivyUser } from "@/lib/privy-farcaster";
 import { useAuth } from "@/lib/auth-context";
 import { TransferModal } from "@/components/transfer/transfer-modal";
+import { TipPopover } from "@/components/ui/tip-popover";
+import { IconCamera } from "@/components/layout/nav-icons";
 
 type Profile = {
   display_name: string | null;
@@ -32,14 +33,9 @@ export function ProfileCard({ profile, userId }: Props) {
   const privy = usePrivy();
   const { logout } = useAuth();
   const isOwnProfile = getCurrentProfileId() === userId;
-  const displayDid = getDisplayDid(profile.fid, profile.custom_did);
+  const displayDid = getDisplayDid(profile.fid, profile.custom_did) || getSystemDid(userId);
 
-  const [displayName, setDisplayName] = useState(profile.display_name ?? "");
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? "");
-  const [customDidInput, setCustomDidInput] = useState(profile.custom_did ?? "");
-  const [didError, setDidError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [savingDid, setSavingDid] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [syncingFarcaster, setSyncingFarcaster] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -60,10 +56,8 @@ export function ProfileCard({ profile, userId }: Props) {
   const didAutoSyncFarcaster = useRef(false);
 
   useEffect(() => {
-    setDisplayName(profile.display_name ?? "");
     setAvatarUrl(profile.avatar_url ?? "");
-    setCustomDidInput(profile.custom_did ?? "");
-  }, [profile.display_name, profile.avatar_url, profile.custom_did]);
+  }, [profile.avatar_url]);
 
   // 本人且档案无 fid 但 Privy 有 Farcaster：自动同步一次，以便显示 DID 与头像/昵称
   useEffect(() => {
@@ -109,65 +103,6 @@ export function ProfileCard({ profile, userId }: Props) {
       : profile.credit_score >= 50
         ? t("profile.creditMid")
         : t("profile.creditNew");
-
-  const handleSaveProfile = async () => {
-    if (!isOwnProfile) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/users/${userId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ display_name: displayName || null }),
-      });
-      if (res.ok) {
-        router.refresh();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        alert(data?.error ?? (res.status === 401 ? "未识别到您的身份，请从个人中心进入后再试" : "保存失败"));
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const checkDidAvailable = async (handle: string) => {
-    if (!handle || handle.length < 3) return;
-    const normalized = handle.trim().toLowerCase().replace(/^@/, "");
-    if (!normalized) return;
-    const res = await fetch(
-      `/api/users/check-did?handle=${encodeURIComponent(normalized)}&exclude_id=${encodeURIComponent(userId)}`,
-      { credentials: "include" }
-    );
-    const data = await res.json().catch(() => ({}));
-    if (!data.available) setDidError(t("profile.didTaken"));
-  };
-
-  const handleSaveDid = async () => {
-    if (!isOwnProfile || profile.fid) return;
-    setDidError(null);
-    setSavingDid(true);
-    try {
-      const res = await fetch(`/api/users/${userId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ custom_did: customDidInput.trim() || null }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 409) {
-        setDidError(t("profile.didTaken"));
-        return;
-      }
-      if (!res.ok) {
-        setDidError([data?.error, data?.hint].filter(Boolean).join(" ") || "Failed");
-        return;
-      }
-      router.refresh();
-    } finally {
-      setSavingDid(false);
-    }
-  };
 
   const handleSyncFarcaster = async () => {
     if (!isOwnProfile || !privyUser?.id) return;
@@ -292,7 +227,7 @@ export function ProfileCard({ profile, userId }: Props) {
                 ref={avatarInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/gif,image/webp"
-                className="absolute inset-0 cursor-pointer opacity-0"
+                className="hidden"
                 onChange={handleAvatarChange}
                 disabled={uploadingAvatar}
               />
@@ -300,39 +235,18 @@ export function ProfileCard({ profile, userId }: Props) {
                 type="button"
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={uploadingAvatar}
-                className="absolute -bottom-1 -right-1 rounded-full bg-accent px-2 py-1 text-[10px] font-medium text-black"
+                className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-black shadow"
+                aria-label={t("profile.uploadAvatar")}
               >
-                {uploadingAvatar ? "…" : t("profile.uploadAvatar")}
+                <IconCamera className="h-3 w-3" />
               </button>
             </>
           )}
         </div>
         <div className="min-w-0 flex-1">
-          {isOwnProfile ? (
-            <div>
-              <label className="block text-xs text-foreground/50">{t("profile.nickname")}</label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                onBlur={handleSaveProfile}
-                placeholder={t("profile.nickname")}
-                className="mt-0.5 w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-xl font-semibold text-foreground placeholder:text-foreground/40"
-              />
-              <button
-                type="button"
-                onClick={handleSaveProfile}
-                disabled={saving}
-                className="mt-2 text-xs text-accent hover:underline disabled:opacity-50"
-              >
-                {saving ? "…" : t("profile.editProfile")}
-              </button>
-            </div>
-          ) : (
-            <h1 className="text-xl font-semibold text-foreground">
-              {profile.display_name ?? "匿名"}
-            </h1>
-          )}
+          <h1 className="text-xl font-semibold text-foreground font-mono">
+            {displayDid || getDisplayNameOrDid(profile)}
+          </h1>
           {profile.bio && (
             <p className="mt-1 text-sm text-foreground/70">{profile.bio}</p>
           )}
@@ -341,60 +255,33 @@ export function ProfileCard({ profile, userId }: Props) {
 
       <dl className="mt-6 grid gap-2 text-xs">
         <div>
-          <dt className="text-foreground/50">{t("profile.did")}</dt>
+          <dt className="text-foreground/50">
+            <TipPopover
+              title="DID"
+              content={
+                <>
+                  <p>去中心化身份标识，是您在平台内的唯一身份凭证。</p>
+                  <p className="mt-2">格式：did:jihe:@用户名 或 Farcaster FID。一旦保存不可修改。</p>
+                </>
+              }
+            >
+              <span className="cursor-pointer hover:text-accent">{t("profile.did")} ℹ️</span>
+            </TipPopover>
+          </dt>
           <dd>
-            {profile.fid ? (
-              <span className="font-mono text-foreground break-all" data-did="farcaster">{displayDid}</span>
-            ) : profile.custom_did?.trim() ? (
-              <div>
-                <span className="font-mono text-foreground break-all">{displayDid}</span>
-                <p className="mt-1 text-[11px] text-foreground/60">{t("profile.didSavedNoEdit")}</p>
-              </div>
-            ) : isOwnProfile ? (
-              <div>
-                <p className="mb-1.5 text-[11px] text-foreground/60">{t("profile.didSaveReminder")}</p>
-                {canSyncFarcaster && farcasterFields?.fid && (
-                  <p className="mb-1.5 text-[11px] text-foreground/50">或点击下方「从 Farcaster 同步」使用 Farcaster FID 作为 DID。</p>
-                )}
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-foreground/70">did:jihe:</span>
-                  <input
-                    type="text"
-                    value={customDidInput}
-                    onChange={(e) => {
-                      setCustomDidInput(e.target.value);
-                      setDidError(null);
-                    }}
-                    onBlur={() => {
-                      const v = customDidInput.trim().replace(/^@/, "").toLowerCase();
-                      if (v.length >= 3) checkDidAvailable(v);
-                    }}
-                    placeholder={t("profile.didPlaceholder")}
-                    className="min-w-[120px] flex-1 rounded border border-foreground/20 bg-black/40 px-2 py-1 font-mono text-foreground placeholder:text-foreground/40"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSaveDid}
-                    disabled={savingDid}
-                    className="rounded border border-accent/60 px-2 py-1 text-accent"
-                  >
-                    {savingDid ? "…" : t("profile.save")}
-                  </button>
-                </div>
-                {didError && (
-                  <p className="mt-1 text-red-400">{didError}</p>
-                )}
-              </div>
-            ) : (
-              <span className="font-mono text-foreground break-all">
-                {displayDid || t("profile.didNotSet")}
-              </span>
-            )}
+            <span className="font-mono text-foreground break-all">{displayDid}</span>
           </dd>
         </div>
         {profile.wallet_address ? (
           <div>
-            <dt className="text-foreground/50">{t("profile.wallet")}</dt>
+            <dt className="text-foreground/50">
+              <TipPopover
+                title="钱包"
+                content="您登录时绑定的链上钱包地址，用于 SBT 签发、转账等操作。非济和 DAO 专属，为通用链上身份。"
+              >
+                <span className="cursor-pointer hover:text-accent">{t("profile.wallet")} ℹ️</span>
+              </TipPopover>
+            </dt>
             <dd className="font-mono text-foreground/90 break-all">
               {profile.wallet_address}
             </dd>
@@ -407,13 +294,21 @@ export function ProfileCard({ profile, userId }: Props) {
           </div>
         ) : null}
         <div>
-          <dt className="text-foreground/50">{t("profile.credit")}</dt>
+          <dt className="text-foreground/50">
+            <TipPopover title="信誉分" content={<><p>基于协作行为计算的信用评分，影响项目参与、任务接取等。</p><p className="mt-2">来源：完成任务、获得好评、持续参与等。高分用户享有更多协作机会。</p></>}>
+              <span className="cursor-pointer hover:text-accent">{t("profile.credit")} ℹ️</span>
+            </TipPopover>
+          </dt>
           <dd className="font-semibold text-accent">
             {profile.credit_score} · {creditLabel}
           </dd>
         </div>
         <div>
-          <dt className="text-foreground/50">{t("profile.jiheCoin")}</dt>
+          <dt className="text-foreground/50">
+            <TipPopover title="济和币" content={<><p>平台内积分，用于参与项目、任务、课程等。</p><p className="mt-2">获得方式：发帖 +5、评论 +2、被点赞 +1、完成任务 +10、获得勋章 +20。可用于抵押、冻结、转账。</p></>}>
+              <span className="cursor-pointer hover:text-accent">{t("profile.jiheCoin")} ℹ️</span>
+            </TipPopover>
+          </dt>
           <dd className="font-semibold text-accent">
             {profile.jihe_coin_balance} 济和币
           </dd>
@@ -423,7 +318,9 @@ export function ProfileCard({ profile, userId }: Props) {
       {profile.badges?.length > 0 ? (
         <div className="mt-6">
           <h2 className="text-xs uppercase tracking-wider text-accent/80">
-            {t("profile.badges")}
+            <TipPopover title="SBT 勋章" content=" Soulbound Token，链上不可转移凭证。获得勋章可提升信誉，部分勋章由社区或项目方签发。">
+              <span className="cursor-pointer hover:text-accent">{t("profile.badges")} ℹ️</span>
+            </TipPopover>
           </h2>
           <ul className="mt-2 flex flex-wrap gap-2">
             {profile.badges.map((b) => (
@@ -458,7 +355,7 @@ export function ProfileCard({ profile, userId }: Props) {
               disabled={syncingFarcaster}
               className="rounded-full border border-foreground/30 bg-foreground/5 px-4 py-2 text-xs font-semibold text-foreground hover:bg-foreground/10 disabled:opacity-50"
             >
-              {syncingFarcaster ? "同步中…" : "从 Farcaster 同步头像与昵称"}
+              {syncingFarcaster ? "同步中…" : "从 Farcaster 同步身份与头像"}
             </button>
             {syncError && (
               <p className="w-full text-xs text-red-400 mt-1 break-words">
@@ -497,7 +394,7 @@ export function ProfileCard({ profile, userId }: Props) {
       {showTransfer && !isOwnProfile && (
         <TransferModal
           toUserId={userId}
-          toUserName={profile.display_name ?? "匿名"}
+          toUserName={getDisplayNameOrDid(profile)}
           onClose={() => setShowTransfer(false)}
         />
       )}

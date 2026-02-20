@@ -59,6 +59,20 @@ export default function MembersPage() {
     enabled: !!profileId,
   });
 
+  const { data: convos = [] } = useQuery({
+    queryKey: ["conversations", profileId],
+    queryFn: async () => {
+      if (!profileId) return [];
+      const res = await fetch(`/api/conversations?userId=${profileId}`);
+      if (!res.ok) return [];
+      return res.json() as Promise<{ other_user_id: string; last_message_preview: string | null }[]>;
+    },
+    enabled: !!profileId,
+  });
+  const lastMessageByUser = new Map<string, string>(
+    (convos ?? []).map((c) => [c.other_user_id, c.last_message_preview ?? ""]).filter(([, v]) => v)
+  );
+
   const followingIds = new Set(followData?.following ?? []);
   const followerIds = new Set(followData?.followers ?? []);
   const blockedList = blocksData?.blocked ?? [];
@@ -104,6 +118,7 @@ export default function MembersPage() {
               <li key={m.id}>
                 <MemberCard
                   member={m}
+                  lastMessage={lastMessageByUser.get(m.id) ?? undefined}
                   isBlockedTab={tab === "blocked"}
                   onUnblock={invalidateBlocks}
                 />

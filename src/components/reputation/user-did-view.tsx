@@ -142,7 +142,7 @@ export function UserDIDView({ userId, walletAddress }: Props) {
                               )}
                               <div>
                                 <p className="font-medium">
-                                  {issuer.profile.display_name ?? "匿名"}
+                                  {issuer.profile.display_name || "—"}
                                 </p>
                                 <p className="text-xs text-foreground/60">
                                   信誉分 {issuer.reputation_score} · 签发时 {sbt.issuer_score_at_mint}

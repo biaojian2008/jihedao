@@ -6,6 +6,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getDisplayNameOrDid } from "@/lib/did";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -33,14 +34,14 @@ export async function GET(request: NextRequest) {
   const order = postIds;
   const byId = new Map((postRows ?? []).map((p) => [p.id, p]));
   const authorIds = [...new Set((postRows ?? []).map((p) => p.author_id))];
-  let profiles: Record<string, { display_name: string | null }> = {};
+  let profiles: Record<string, { id: string; display_name: string | null; fid: string | null; custom_did: string | null }> = {};
   if (authorIds.length > 0) {
     const { data: profileList } = await supabase
       .from("user_profiles")
-      .select("id, display_name")
+      .select("id, display_name, fid, custom_did")
       .in("id", authorIds);
     for (const p of profileList ?? []) {
-      profiles[p.id] = { display_name: p.display_name };
+      profiles[p.id] = { id: p.id, display_name: p.display_name, fid: p.fid ?? null, custom_did: (p as { custom_did?: string | null }).custom_did ?? null };
     }
   }
   const result = order
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
       const p = profiles[row.author_id];
       return {
         ...row,
-        author_name: p?.display_name ?? "匿名",
+        author_name: p ? getDisplayNameOrDid(p) : getDisplayNameOrDid({ id: row.author_id }),
         saved_at: saved.find((s) => s.post_id === id)?.created_at,
       };
     })

@@ -3,6 +3,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getDisplayNameOrDid } from "@/lib/did";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -29,11 +30,11 @@ export async function GET(
   }
   const { data: profiles } = await supabase
     .from("user_profiles")
-    .select("id, display_name")
+    .select("id, display_name, fid, custom_did")
     .in("id", userIds);
   const names: Record<string, string> = {};
   for (const p of profiles ?? []) {
-    names[p.id] = (p.display_name as string) ?? "匿名";
+    names[p.id] = getDisplayNameOrDid({ id: p.id, display_name: p.display_name, fid: p.fid, custom_did: (p as { custom_did?: string | null }).custom_did });
   }
   return NextResponse.json({
     id: conversationId,

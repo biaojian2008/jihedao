@@ -13,7 +13,6 @@ const navKeys = [
   { href: "/log", key: "nav.log" },
   { href: "/community", key: "nav.community" },
   { href: "/members", key: "nav.members" },
-  { href: "/dm", key: "nav.dm" },
   { href: "/intel", key: "nav.intel" },
   { href: "/settings", key: "nav.settings" },
 ] as const;
@@ -116,9 +115,10 @@ export function Nav() {
                   Login
                 </button>
                 {loginOpen && (
-                  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60" onClick={() => setLoginOpen(false)}>
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center pt-[12vh] bg-black/60" onClick={() => setLoginOpen(false)}>
                     <div className="mx-4 w-full max-w-sm rounded-xl border border-foreground/20 bg-background p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
                       <p className="mb-3 text-sm text-foreground/80">选择登录方式</p>
+                      <p className="mb-3 text-xs text-foreground/60">登录后可在个人中心设置 DID；若不设置，系统将自动分配一个。</p>
                       <div className="flex flex-col gap-2">
                         <button
                           type="button"

@@ -1,5 +1,6 @@
 /** GET: Group detail with members */
 import { NextRequest, NextResponse } from "next/server";
+import { getDisplayNameOrDid } from "@/lib/did";
 import { createClient } from "@supabase/supabase-js";
 import { PROFILE_ID_COOKIE } from "@/lib/current-user";
 
@@ -59,23 +60,26 @@ export async function GET(
     .order("joined_at", { ascending: true });
 
   const userIds = [...new Set((members ?? []).map((m) => m.user_id))];
-  let profiles: { id: string; display_name: string | null; avatar_url: string | null }[] = [];
+  let profiles: { id: string; display_name: string | null; avatar_url: string | null; fid: string | null; custom_did: string | null }[] = [];
   if (userIds.length > 0) {
     const { data } = await supabase
       .from("user_profiles")
-      .select("id, display_name, avatar_url")
+      .select("id, display_name, avatar_url, fid, custom_did")
       .in("id", userIds);
-    profiles = data ?? [];
+    profiles = (data ?? []).map((p) => ({ ...p, fid: p.fid ?? null, custom_did: (p as { custom_did?: string | null }).custom_did ?? null }));
   }
   const profileMap = Object.fromEntries(profiles.map((p) => [p.id, p]));
 
-  const memberList = (members ?? []).map((m) => ({
-    user_id: m.user_id,
-    role: m.role,
-    joined_at: m.joined_at,
-    display_name: profileMap[m.user_id]?.display_name ?? "匿名",
-    avatar_url: profileMap[m.user_id]?.avatar_url ?? null,
-  }));
+  const memberList = (members ?? []).map((m) => {
+    const prof = profileMap[m.user_id];
+    return {
+      user_id: m.user_id,
+      role: m.role,
+      joined_at: m.joined_at,
+      display_name: prof ? getDisplayNameOrDid(prof) : getDisplayNameOrDid({ id: m.user_id }),
+      avatar_url: profileMap[m.user_id]?.avatar_url ?? null,
+    };
+  });
 
   return NextResponse.json({
     ...group,

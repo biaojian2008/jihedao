@@ -195,6 +195,36 @@ export function IconBlock({ className }: { className?: string }) {
   );
 }
 
+/** 相机/上传-头像编辑 */
+export function IconCamera({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+      <circle cx="12" cy="13" r="4" />
+    </svg>
+  );
+}
+
+/** 回复-箭头 */
+export function IconReply({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 17 1 9 9 1" />
+      <path d="M23 17V9a2 2 0 0 0-2-2H9" />
+    </svg>
+  );
+}
+
+/** 回复 */
+export function IconReply({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 17 1 9 9 1" />
+      <path d="M1 9h13a4 4 0 0 1 4 4v6" />
+    </svg>
+  );
+}
+
 /** 麦克风-语音输入 */
 export function IconMic({ className }: { className?: string }) {
   return (

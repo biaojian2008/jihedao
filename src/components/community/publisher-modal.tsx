@@ -12,9 +12,10 @@ const TITLE_MAX = 500;
 const CONTENT_MAX = 10000;
 
 const POST_TYPES = [
+  { value: "product", key: "community.type.product" },
+  { value: "service", key: "community.type.service" },
   { value: "project", key: "community.type.project" },
   { value: "task", key: "community.type.task" },
-  { value: "product", key: "community.type.product" },
   { value: "course", key: "community.type.course" },
   { value: "demand", key: "community.type.demand" },
   { value: "stance", key: "community.type.stance" },
@@ -91,6 +92,9 @@ export function PublisherModal({ open, onClose }: Props) {
 
   const isProject = type === "project";
   const isTask = type === "task";
+  const isProduct = type === "product";
+  const isService = type === "service";
+  const isProductOrService = isProduct || isService;
   const isProjectOrTask = isProject || isTask;
 
   const reset = () => {
@@ -162,7 +166,7 @@ export function PublisherModal({ open, onClose }: Props) {
         return;
       }
     }
-    if (type === "product") {
+    if (isProductOrService) {
       const price = Number(productPrice);
       if (price < 0 || !productPrice.trim()) {
         setError(t("publisher.priceJihe") + " 必填且 ≥ 0");
@@ -206,7 +210,7 @@ export function PublisherModal({ open, onClose }: Props) {
       let finalDetails = details.trim().slice(0, 5000);
       let finalAuthorCollateral = Number(authorCollateral) || 0;
       let finalParticipantFreeze = Number(participantFreeze) || 0;
-      if (type === "product") {
+      if (isProductOrService) {
         finalAuthorCollateral = Number(productPrice) || 0;
       }
       if (type === "course") {
@@ -342,7 +346,7 @@ export function PublisherModal({ open, onClose }: Props) {
             </div>
             {!isStance && (
               <div className="mb-2">
-                <label className="mb-1 block text-xs text-foreground/70">{t("publisher.title")} *</label>
+                <label className="mb-1 block text-xs text-foreground/70">{isProductOrService ? "商品名" : t("publisher.title")} *</label>
                 <input
                   placeholder={t("publisher.title")}
                   value={title}
@@ -354,7 +358,7 @@ export function PublisherModal({ open, onClose }: Props) {
               </div>
             )}
             <div className="mb-2">
-              <label className="mb-1 block text-xs text-foreground/70">{isStance ? "内容" : t("publisher.content") + " *（简介）"}</label>
+              <label className="mb-1 block text-xs text-foreground/70">{isStance ? "内容" : isProductOrService ? "商品介绍 *" : t("publisher.content") + " *（简介）"}</label>
               <textarea
                 placeholder={isStance ? "分享你的观点…" : t("publisher.content")}
                 value={content}
@@ -471,8 +475,8 @@ export function PublisherModal({ open, onClose }: Props) {
               </div>
             )}
 
-            {/* 商品：价格（济和币）、图片用下方「图片链接」 */}
-            {type === "product" && (
+            {/* 商品/服务：价格、上传图片 */}
+            {isProductOrService && (
               <div className="mb-3 space-y-2 rounded-lg border border-foreground/15 bg-black/20 p-3">
                 <div>
                   <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.priceJihe")} *</label>
@@ -494,6 +498,12 @@ export function PublisherModal({ open, onClose }: Props) {
                     onChange={(e) => setDetails(e.target.value.slice(0, 500))}
                     className="w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
                   />
+                </div>
+                <div>
+                  <label className="mb-0.5 block text-[10px] text-foreground/60">商品图片（上传）</label>
+                  <div className="flex items-center gap-2">
+                    <StanceMediaButtons mediaUrlsStr={mediaUrlsStr} setMediaUrlsStr={setMediaUrlsStr} />
+                  </div>
                 </div>
               </div>
             )}
@@ -627,13 +637,16 @@ export function PublisherModal({ open, onClose }: Props) {
                   onChange={(e) => setTagsStr(e.target.value)}
                   className="mb-2 w-full rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50"
                 />
-                <textarea
-                  placeholder={t("publisher.mediaUrls")}
-                  value={mediaUrlsStr}
-                  onChange={(e) => setMediaUrlsStr(e.target.value)}
-                  rows={2}
-                  className="mb-4 w-full resize-none rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50"
-                />
+                {!isProductOrService && (
+                  <textarea
+                    placeholder={t("publisher.mediaUrls")}
+                    value={mediaUrlsStr}
+                    onChange={(e) => setMediaUrlsStr(e.target.value)}
+                    rows={2}
+                    className="mb-4 w-full resize-none rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50"
+                  />
+                )}
+                {isProductOrService && <div className="mb-4" />}
               </>
             )}
             {isStance && <div className="mb-4" />}

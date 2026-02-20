@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { ReputationEngine } from "@/lib/reputation/reputation-engine";
+import { getDisplayNameOrDid } from "@/lib/did";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
   const supabase = createClient(url, key);
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("id, display_name, avatar_url, bio, credit_score")
+    .select("id, display_name, avatar_url, bio, credit_score, fid, custom_did")
     .eq("wallet_address", address)
     .single();
 
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     profile: profile
       ? {
           id: profile.id,
-          display_name: profile.display_name,
+          display_name: getDisplayNameOrDid({ id: profile.id, display_name: profile.display_name, fid: profile.fid, custom_did: (profile as { custom_did?: string | null }).custom_did }),
           avatar_url: profile.avatar_url,
           bio: profile.bio,
           credit_score: profile.credit_score,
