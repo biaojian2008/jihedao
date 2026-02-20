@@ -55,7 +55,7 @@ export default async function LogDetailPage({ params }: Props) {
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <div className="mb-6 flex items-center justify-between gap-2">
           <LogDetailBack />
-          <LogShareButton logId={id} title={log.title} text={log.content.slice(0, 100)} />
+          <LogShareButton logId={id} title={log.title} excerpt={log.content.slice(0, 100)} />
         </div>
         <article>
           {log.cover_image_url && (
