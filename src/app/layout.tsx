@@ -4,6 +4,8 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Nav } from "@/components/layout/nav";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { HomeSearchButton } from "@/components/home/home-search-button";
+import { HomePublishButton } from "@/components/home/home-publish-button";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -40,6 +42,8 @@ export default function RootLayout({
           <Nav />
           {children}
           <BottomNav />
+          <HomeSearchButton />
+          <HomePublishButton />
         </Providers>
       </body>
     </html>

@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
 import { LogDetailBack } from "@/components/log/log-detail-back";
+import { LogShareButton } from "@/components/log/log-share-button";
 import { resolveText, type Locale } from "@/lib/i18n/resolve";
 
 type Props = { params: Promise<{ id: string }> };
@@ -52,7 +53,10 @@ export default async function LogDetailPage({ params }: Props) {
   return (
     <div className="min-h-screen pt-14 pb-20 md:pb-16">
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <LogDetailBack />
+        <div className="mb-6 flex items-center justify-between gap-2">
+          <LogDetailBack />
+          <LogShareButton logId={id} title={log.title} text={log.content.slice(0, 100)} />
+        </div>
         <article>
           {log.cover_image_url && (
             <div className="-mx-0 mb-6 overflow-hidden rounded-xl border border-foreground/10">

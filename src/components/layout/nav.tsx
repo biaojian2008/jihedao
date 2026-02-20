@@ -15,7 +15,7 @@ const navKeys = [
   { href: "/members", key: "nav.members" },
   { href: "/dm", key: "nav.dm" },
   { href: "/intel", key: "nav.intel" },
-  { href: "/admin", key: "nav.admin" },
+  { href: "/settings", key: "nav.settings" },
 ] as const;
 
 export function Nav() {
@@ -77,12 +77,12 @@ export function Nav() {
               ))}
             </div>
             <Link
-              href="/admin"
-              aria-label={t("nav.admin")}
-              title={t("nav.admin")}
+              href="/settings"
+              aria-label={t("nav.settings")}
+              title={t("nav.settings")}
               className="flex md:hidden items-center justify-center p-2 rounded-md transition hover:text-accent text-foreground/70"
             >
-              <NavIcon href="/admin" className="h-5 w-5 shrink-0" />
+              <NavIcon href="/settings" className="h-5 w-5 shrink-0" />
             </Link>
           </div>
 

@@ -13,6 +13,7 @@ const items = [
   { href: "/members", key: "nav.members" },
   { href: "/dm", key: "nav.dm" },
   { href: "/intel", key: "nav.intel" },
+  { href: "/settings", key: "nav.settings" },
   { href: "/me", key: "nav.profile" }, // 个人中心，最后一项
 ] as const;
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MemberCard } from "@/components/members/member-card";
+import { GroupsList } from "@/components/groups/groups-list";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { getCurrentProfileId } from "@/lib/current-user";
 
@@ -18,7 +19,7 @@ type Member = {
   badges: { name: string; description: string | null; icon_url: string | null }[];
 };
 
-type Tab = "all" | "following" | "followers" | "blocked";
+type Tab = "all" | "following" | "followers" | "groups" | "blocked";
 
 export default function MembersPage() {
   const { t } = useLocale();
@@ -68,6 +69,8 @@ export default function MembersPage() {
   else if (tab === "followers") list = members.filter((m) => followerIds.has(m.id));
   else if (tab === "blocked") list = blockedList;
 
+  const isGroupsTab = tab === "groups";
+
   const invalidateBlocks = () => {
     queryClient.invalidateQueries({ queryKey: ["blocks", profileId] });
     queryClient.invalidateQueries({ queryKey: ["members", profileId] });
@@ -78,7 +81,7 @@ export default function MembersPage() {
       <main className="mx-auto max-w-xl px-4 py-6 sm:px-6">
         <h1 className="mb-4 text-xl font-semibold text-foreground">{t("nav.members")}</h1>
         <div className="mb-4 flex gap-2 overflow-x-auto border-b border-foreground/10 pb-2">
-          {(["all", "following", "followers", "blocked"] as const).map((value) => (
+          {(["all", "following", "followers", "groups", "blocked"] as const).map((value) => (
             <button
               key={value}
               type="button"
@@ -87,11 +90,13 @@ export default function MembersPage() {
                 tab === value ? "bg-accent/20 text-accent" : "text-foreground/70 hover:text-foreground"
               }`}
             >
-              {t(value === "all" ? "members.tabAll" : value === "following" ? "members.tabFollowing" : value === "followers" ? "members.tabFollowers" : "members.tabBlocked")}
+              {value === "all" ? t("members.tabAll") : value === "following" ? t("members.tabFollowing") : value === "followers" ? t("members.tabFollowers") : value === "groups" ? t("members.tabGroups") : t("members.tabBlocked")}
             </button>
           ))}
         </div>
-        {isLoading && tab !== "blocked" ? (
+        {isGroupsTab ? (
+          <GroupsList />
+        ) : isLoading && tab !== "blocked" ? (
           <p className="text-sm text-foreground/60">{t("common.loading")}</p>
         ) : (
           <ul className="space-y-3">
@@ -106,7 +111,7 @@ export default function MembersPage() {
             ))}
           </ul>
         )}
-        {!isLoading && list.length === 0 && (
+        {!isGroupsTab && !isLoading && list.length === 0 && (
           <p className="text-sm text-foreground/50">
             {tab === "blocked" ? t("members.tabBlocked") + " 暂无" : "暂无"}
           </p>

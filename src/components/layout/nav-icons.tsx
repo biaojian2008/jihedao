@@ -216,6 +216,7 @@ const iconMap = {
   "/intel": IconIntel,
   "/me": IconProfile,
   "/admin": IconAdmin,
+  "/settings": IconAdmin,
 } as const;
 
 export function NavIcon({ href, className }: { href: string; className?: string }) {

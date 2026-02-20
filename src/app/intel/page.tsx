@@ -190,6 +190,69 @@ export default function IntelPage() {
             ))}
           </ul>
         )}
+
+        {/* AI Agent 预留 */}
+        <div className="mt-8 rounded-xl border border-dashed border-foreground/20 bg-foreground/[0.02] p-6 text-center">
+          <p className="text-xs uppercase tracking-wider text-accent/60">AI Agent</p>
+          <p className="mt-2 text-sm text-foreground/50">即将上线 · Coming Soon</p>
+        </div>
+
+        {/* 友情链接：自由意志 / 自由至上 / Web3 / 超级个体 */}
+        <div className="mt-8">
+          <h3 className="mb-3 text-sm font-medium text-foreground/80">{t("intel.friendLinks")}</h3>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { name: "Mises Institute", url: "https://mises.org" },
+              { name: "Vitalik.eth", url: "https://vitalik.eth.limo" },
+              { name: "Bankless", url: "https://bankless.com" },
+              { name: "Farcaster", url: "https://warpcast.com" },
+              { name: "FEE", url: "https://fee.org" },
+              { name: "Ayn Rand Institute", url: "https://aynrand.org" },
+            ].map((l) => (
+              <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="rounded border border-foreground/20 px-3 py-1.5 text-xs text-foreground/70 hover:border-accent/40 hover:text-accent">
+                {l.name}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* 书籍 */}
+        <div className="mt-6">
+          <h3 className="mb-3 text-sm font-medium text-foreground/80">{t("intel.books")}</h3>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { name: "主权个人", url: "https://en.wikipedia.org/wiki/The_Sovereign_Individual" },
+              { name: "阿特拉斯耸耸肩", url: "https://zh.wikipedia.org/wiki/阿特拉斯耸耸肩" },
+              { name: "源泉", url: "https://zh.wikipedia.org/wiki/源泉_(小说)" },
+              { name: "人、经济与国家", url: "https://zh.wikipedia.org/wiki/人、经济与国家" },
+              { name: "The Sovereign Individual", url: "https://www.amazon.com/dp/0684832720" },
+              { name: "What Has Government Done", url: "https://mises.org/library/what-government-has-done-our-money" },
+            ].map((l) => (
+              <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="rounded border border-foreground/20 px-3 py-1.5 text-xs text-foreground/70 hover:border-accent/40 hover:text-accent">
+                {l.name}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* 开源社区 */}
+        <div className="mt-6 mb-8">
+          <h3 className="mb-3 text-sm font-medium text-foreground/80">{t("intel.opensource")}</h3>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { name: "GitHub", url: "https://github.com" },
+              { name: "开源中国", url: "https://www.oschina.net" },
+              { name: "Arduino", url: "https://www.arduino.cc" },
+              { name: "Raspberry Pi", url: "https://www.raspberrypi.org" },
+              { name: "Apache", url: "https://www.apache.org" },
+              { name: "CNCF", url: "https://www.cncf.io" },
+            ].map((l) => (
+              <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="rounded border border-foreground/20 px-3 py-1.5 text-xs text-foreground/70 hover:border-accent/40 hover:text-accent">
+                {l.name}
+              </a>
+            ))}
+          </div>
+        </div>
       </main>
     </div>
   );

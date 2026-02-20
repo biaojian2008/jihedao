@@ -6,6 +6,8 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { LogPageTitle } from "@/components/log/log-page-title";
+import { LogShareButton } from "@/components/log/log-share-button";
+import { AdminLink } from "@/components/admin/admin-guard";
 import { resolveText, type Locale } from "@/lib/i18n/resolve";
 
 const placeholderLogs: { id: string; title: string; date: string; excerpt: string }[] = [
@@ -48,14 +50,19 @@ export default async function LogPage() {
   return (
     <div className="min-h-screen pt-14 pb-20 md:pb-16">
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <LogPageTitle />
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <LogPageTitle />
+          <AdminLink
+            href="/admin"
+            className="rounded border border-foreground/20 px-3 py-1.5 text-xs font-medium text-foreground/60 transition hover:border-accent/40 hover:text-accent"
+          >
+            发布/管理日志
+          </AdminLink>
+        </div>
         <ul className="space-y-4">
           {logs.map((log) => (
-            <li key={log.id}>
-              <Link
-                href={`/log/${log.id}`}
-                className="block rounded-xl border border-foreground/10 bg-black/40 p-4 transition hover:border-accent/40 hover:bg-black/60"
-              >
+            <li key={log.id} className="group flex items-start gap-2 rounded-xl border border-foreground/10 bg-black/40 transition hover:border-accent/40 hover:bg-black/60">
+              <Link href={`/log/${log.id}`} className="min-w-0 flex-1 p-4">
                 {log.cover_image_url && (
                   <div className="mb-3 -mx-4 -mt-4 overflow-hidden rounded-t-xl">
                     {/\.(mp4|webm|mov|ogg)(\?|$)/i.test(log.cover_image_url) ? (
@@ -76,6 +83,9 @@ export default async function LogPage() {
                   {log.excerpt}
                 </p>
               </Link>
+              <div className="shrink-0 pt-4 pr-2" onClick={(e) => e.preventDefault()}>
+                <LogShareButton logId={log.id} title={log.title} excerpt={log.excerpt} />
+              </div>
             </li>
           ))}
         </ul>
