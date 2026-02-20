@@ -50,7 +50,6 @@ export async function POST(request: NextRequest) {
     amount,
     reason: JIHE_COIN_REASONS.SHARE,
     referenceType: "share",
-    referenceId: null,
   });
 
   if (!res.ok) {
