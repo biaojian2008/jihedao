@@ -9,10 +9,29 @@ type Props = {
   text?: string;
   className?: string;
   size?: "sm" | "md";
+  /** 是否请求分享奖励（分享给好友每次 +10 济和币） */
+  claimReward?: boolean;
 };
 
-export function ShareButton({ url, title, text, className = "", size = "sm" }: Props) {
+export function ShareButton({ url, title, text, className = "", size = "sm", claimReward = false }: Props) {
   const [copied, setCopied] = useState(false);
+  const [rewardMsg, setRewardMsg] = useState("");
+
+  const onShareSuccess = () => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+    if (claimReward) {
+      fetch("/api/jihe-coin/share-reward", { method: "POST", credentials: "include" })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.ok && data?.amount) {
+            setRewardMsg(`+${data.amount} 济和币`);
+            setTimeout(() => setRewardMsg(""), 2500);
+          }
+        })
+        .catch(() => {});
+    }
+  };
 
   const handleShare = async () => {
     const fullUrl = typeof window !== "undefined" ? new URL(url, window.location.origin).href : url;
@@ -22,8 +41,7 @@ export function ShareButton({ url, title, text, className = "", size = "sm" }: P
     if (typeof navigator !== "undefined" && navigator.share && navigator.canShare?.(shareData)) {
       try {
         await navigator.share(shareData);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
+        onShareSuccess();
       } catch {
         copyLink(fullUrl, title, text);
       }
@@ -39,8 +57,7 @@ export function ShareButton({ url, title, text, className = "", size = "sm" }: P
         ? `${copyTitle}\n\n${fullUrl}`
         : fullUrl;
     navigator.clipboard.writeText(toCopy).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      onShareSuccess();
     });
   };
 
@@ -54,7 +71,7 @@ export function ShareButton({ url, title, text, className = "", size = "sm" }: P
       aria-label="分享"
     >
       <Share2 className={iconSize} />
-      {copied && <span className="text-xs text-accent">已复制</span>}
+      {copied && <span className="text-xs text-accent">{rewardMsg || "已复制"}</span>}
     </button>
   );
 }

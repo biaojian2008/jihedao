@@ -12,7 +12,6 @@ interface BeforeInstallPromptEvent extends Event {
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLocale } from "@/lib/i18n/locale-context";
-import { AdminGuard } from "@/components/admin/admin-guard";
 import { ShareButton } from "@/components/share-button";
 
 const SHARE_TEXT = "欢迎来到高尔特峡谷——超级个体的交流协作平台";
@@ -65,8 +64,8 @@ export default function SettingsPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/icon-192.png" alt="" className="h-10 w-10 rounded-lg object-contain" />
               <div className="flex flex-col gap-1">
-                <span className="text-sm text-foreground/70">{t("settings.shareToFriend")}</span>
-                <ShareButton url={siteUrl} title={SHARE_TITLE} text={SHARE_TEXT} size="md" />
+                <span className="text-sm text-foreground/70">{t("settings.shareToFriend")} · 分享可获得 10 济和币/次</span>
+                <ShareButton url={siteUrl} title={SHARE_TITLE} text={SHARE_TEXT} size="md" claimReward />
               </div>
             </div>
           </div>
@@ -99,16 +98,14 @@ export default function SettingsPage() {
           <p className="text-[10px] text-foreground/40">版本 0.1 · 更多设定敬请期待</p>
         </section>
 
-        {/* 管理员入口 - 设定中心内，仅管理员可见 */}
-        <section className="mb-8">
-          <AdminGuard fallback={null}>
-            <Link
-              href="/admin"
-              className="block rounded-xl border border-foreground/20 bg-foreground/[0.02] p-4 text-sm font-medium text-foreground/80 transition hover:border-accent/40 hover:text-accent"
-            >
-              {t("settings.adminPanel") ?? "管理员入口"} →
-            </Link>
-          </AdminGuard>
+        {/* 管理员入口 - 页面最底部，所有人可见，未登录会跳转到管理后台登录页 */}
+        <section className="pt-4 border-t border-foreground/10">
+          <Link
+            href="/admin"
+            className="block rounded-xl border border-foreground/20 bg-foreground/[0.02] p-4 text-sm font-medium text-foreground/80 transition hover:border-accent/40 hover:text-accent"
+          >
+            {t("settings.adminPanel") ?? "管理员入口"} →
+          </Link>
         </section>
       </main>
     </div>

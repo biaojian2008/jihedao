@@ -11,6 +11,7 @@ export const JIHE_COIN_REASONS = {
   POST_LIKED: "帖子被点赞",
   TASK_DONE: "任务完成",
   BADGE_ISSUED: "获得勋章",
+  SHARE: "分享给好友",
   MANUAL: "管理员发放",
 } as const;
 
@@ -21,6 +22,7 @@ export const JIHE_COIN_RULES: Record<string, number> = {
   [JIHE_COIN_REASONS.POST_LIKED]: 1,
   [JIHE_COIN_REASONS.TASK_DONE]: 10,
   [JIHE_COIN_REASONS.BADGE_ISSUED]: 20,
+  [JIHE_COIN_REASONS.SHARE]: 10,
   [JIHE_COIN_REASONS.MANUAL]: 0, // 由调用方传入
 };
 

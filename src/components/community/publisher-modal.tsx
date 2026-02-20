@@ -25,7 +25,7 @@ type PostType = (typeof POST_TYPES)[number]["value"];
 
 const STANCE_EMOJIS = "😀😃😄😁😅😂🤣😊😇🙂😉😌😍🥰😘😗😙😚😋😛😜🤪😝🤑🤗🤭🤫🤔😐😑😶😏😣😥😮🤐😯😪😫🥱😴🤤😷🤒🤕🤢🤮🤧🥵🥶🥴😵🤯🤠🥳🥸😎🤓🧐😕😟🙁☹️😮😯😲😳🥺😦😧😨😰😥😢😭😱😖😣😞😓😩😫🥱😤😡😠🤬😈💀☠️💩🤡👻💪👍👎👏🙌🤝🙏✌️🤞🤟🤘🤙👌🤌🤏👈👉👆👇☝️✋🤚🖐️🖖👋🤙💅🦾🦿🦵🦶👂🦻👃🧠🫀🫁🦷🦴👀👁️👅👄".split("");
 
-function MediaUploadSection({ mediaUrlsStr, setMediaUrlsStr }: { mediaUrlsStr: string; setMediaUrlsStr: (v: string) => void }) {
+function MediaUploadSection({ mediaUrlsStr, setMediaUrlsStr, integrated }: { mediaUrlsStr: string; setMediaUrlsStr: (v: string) => void; integrated?: boolean }) {
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -56,7 +56,7 @@ function MediaUploadSection({ mediaUrlsStr, setMediaUrlsStr }: { mediaUrlsStr: s
   };
 
   return (
-    <div className="mt-2 space-y-2 border-t border-foreground/10 pt-2">
+    <div className={integrated ? "mt-2 space-y-2 pt-1" : "mt-2 space-y-2 border-t border-foreground/10 pt-2"}>
       <div className="flex flex-wrap items-center gap-2">
         <input ref={galleryRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" onChange={onFile} />
         <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFile} />
@@ -380,15 +380,34 @@ export function PublisherModal({ open, onClose }: Props) {
             )}
             <div className="mb-2">
               <label className="mb-1 block text-xs text-foreground/70">{isStance ? "内容" : isProductOrService ? "商品介绍 *" : t("publisher.content") + " *（简介）"}</label>
-              <textarea
-                placeholder={isStance ? "分享你的观点…" : t("publisher.content")}
-                value={content}
-                onChange={(e) => setContent(e.target.value.slice(0, CONTENT_MAX))}
-                maxLength={CONTENT_MAX}
-                rows={isStance ? 4 : 5}
-                className="w-full resize-none rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50"
-              />
-              <MediaUploadSection mediaUrlsStr={mediaUrlsStr} setMediaUrlsStr={setMediaUrlsStr} />
+              {isProductOrService ? (
+                <>
+                  <div className="rounded-lg border border-foreground/20 bg-black/40 p-2">
+                    <textarea
+                      placeholder={t("publisher.content")}
+                      value={content}
+                      onChange={(e) => setContent(e.target.value.slice(0, CONTENT_MAX))}
+                      maxLength={CONTENT_MAX}
+                      rows={4}
+                      className="w-full resize-none border-0 bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-foreground/50 focus:ring-0 focus:outline-none"
+                    />
+                    <MediaUploadSection mediaUrlsStr={mediaUrlsStr} setMediaUrlsStr={setMediaUrlsStr} integrated />
+                  </div>
+                  <p className="mt-0.5 text-right text-[10px] text-foreground/40">{content.length}/{CONTENT_MAX}</p>
+                </>
+              ) : (
+                <>
+                  <textarea
+                    placeholder={isStance ? "分享你的观点…" : t("publisher.content")}
+                    value={content}
+                    onChange={(e) => setContent(e.target.value.slice(0, CONTENT_MAX))}
+                    maxLength={CONTENT_MAX}
+                    rows={isStance ? 4 : 5}
+                    className="w-full resize-none rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-sm text-foreground placeholder:text-foreground/50"
+                  />
+                  {!isStance && <MediaUploadSection mediaUrlsStr={mediaUrlsStr} setMediaUrlsStr={setMediaUrlsStr} />}
+                </>
+              )}
               {isStance && (
                 <>
                   {showStanceEmoji && (
@@ -496,7 +515,7 @@ export function PublisherModal({ open, onClose }: Props) {
               </div>
             )}
 
-            {/* 商品/服务：价格、上传图片 */}
+            {/* 商品/服务：价格、价格说明（图片已集成在商品介绍框内） */}
             {isProductOrService && (
               <div className="mb-3 space-y-2 rounded-lg border border-foreground/15 bg-black/20 p-3">
                 <div>

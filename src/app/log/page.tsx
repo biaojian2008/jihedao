@@ -7,7 +7,7 @@ import { cookies } from "next/headers";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { LogPageTitle } from "@/components/log/log-page-title";
 import { LogShareButton } from "@/components/log/log-share-button";
-import { AdminLink } from "@/components/admin/admin-guard";
+import { AdminInlineEdit } from "@/components/admin/admin-inline-edit";
 import { resolveText, type Locale } from "@/lib/i18n/resolve";
 
 const placeholderLogs: { id: string; title: string; date: string; excerpt: string }[] = [
@@ -53,12 +53,7 @@ export default async function LogPage() {
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <div className="mb-4 flex items-center justify-between gap-2">
           <LogPageTitle />
-          <AdminLink
-            href="/admin"
-            className="rounded border border-foreground/20 px-3 py-1.5 text-xs font-medium text-foreground/60 transition hover:border-accent/40 hover:text-accent"
-          >
-            发布/管理日志
-          </AdminLink>
+          <AdminInlineEdit variant="logs" buttonLabel="编辑 / 发布日志" />
         </div>
         <ul className="space-y-4">
           {logs.map((log) => (

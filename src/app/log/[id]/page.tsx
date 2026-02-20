@@ -6,6 +6,7 @@ import { createServerSupabase } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
 import { LogDetailBack } from "@/components/log/log-detail-back";
 import { LogShareButton } from "@/components/log/log-share-button";
+import { AdminInlineEdit } from "@/components/admin/admin-inline-edit";
 import { resolveText, type Locale } from "@/lib/i18n/resolve";
 
 type Props = { params: Promise<{ id: string }> };
@@ -55,7 +56,21 @@ export default async function LogDetailPage({ params }: Props) {
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <div className="mb-6 flex items-center justify-between gap-2">
           <LogDetailBack />
-          <LogShareButton logId={id} title={log.title} excerpt={(log.content ?? "").slice(0, 100)} />
+          <div className="flex items-center gap-2">
+            <AdminInlineEdit
+              variant="log-detail"
+              logId={id}
+              logData={{
+                title: log.title,
+                date: log.date,
+                content: log.content ?? "",
+                tags: log.tags ?? [],
+                cover_image_url: log.cover_image_url,
+              }}
+              buttonLabel="编辑"
+            />
+            <LogShareButton logId={id} title={log.title} excerpt={(log.content ?? "").slice(0, 100)} />
+          </div>
         </div>
         <article>
           {log.cover_image_url && (

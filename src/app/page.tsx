@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { HomePublishButton } from "@/components/home/home-publish-button";
 import { HomeSearchButton } from "@/components/home/home-search-button";
-import { AdminLink } from "@/components/admin/admin-guard";
+import { AdminInlineEdit } from "@/components/admin/admin-inline-edit";
 import { HomeActionButtons } from "@/components/home/home-action-buttons";
 
 type Locale = "zh" | "en" | "ja";
@@ -288,12 +288,7 @@ export default async function Home() {
             >
               {cms.hero_cta_secondary}
             </Link>
-            <AdminLink
-              href="/admin"
-              className="rounded-full border border-foreground/20 px-4 py-2 text-xs font-medium text-foreground/60 transition hover:border-accent/40 hover:text-accent"
-            >
-              修改首页
-            </AdminLink>
+            <AdminInlineEdit variant="home" buttonLabel="编辑首页" />
           </div>
           <HomeActionButtons />
         </section>
