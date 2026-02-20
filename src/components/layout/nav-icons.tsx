@@ -205,16 +205,6 @@ export function IconCamera({ className }: { className?: string }) {
   );
 }
 
-/** 回复-箭头 */
-export function IconReply({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="9 17 1 9 9 1" />
-      <path d="M23 17V9a2 2 0 0 0-2-2H9" />
-    </svg>
-  );
-}
-
 /** 回复 */
 export function IconReply({ className }: { className?: string }) {
   return (

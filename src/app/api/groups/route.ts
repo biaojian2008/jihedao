@@ -57,6 +57,9 @@ export async function GET(request: NextRequest) {
     member_count: countByGroup[g.id] ?? 0,
   }));
   return NextResponse.json(list);
+  } catch {
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {

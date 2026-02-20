@@ -7,7 +7,6 @@ import { notFound } from "next/navigation";
 import { PostDetailView } from "@/components/community/post-detail-view";
 import { resolveText, type Locale } from "@/lib/i18n/resolve";
 import { getDisplayNameOrDid } from "@/lib/did";
-import { getDisplayNameOrDid } from "@/lib/did";
 
 type Props = { params: Promise<{ id: string }> };
 

@@ -9,7 +9,6 @@ import { createServerSupabase } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
 import { ProfileCard } from "@/components/profile/profile-card";
 import { getDisplayNameOrDid } from "@/lib/did";
-import { getDisplayNameOrDid } from "@/lib/did";
 import { UserDIDView } from "@/components/reputation/user-did-view";
 
 type Props = { params: Promise<{ id: string }> };
