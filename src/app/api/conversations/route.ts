@@ -5,6 +5,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getDisplayNameOrDid } from "@/lib/did";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -52,10 +53,10 @@ export async function GET(request: NextRequest) {
       if (otherId) {
         const { data: prof } = await supabase
           .from("user_profiles")
-          .select("display_name")
+          .select("id, display_name, fid, custom_did")
           .eq("id", otherId)
           .single();
-        otherName = (prof?.display_name as string) ?? otherId.slice(0, 8);
+        otherName = prof ? getDisplayNameOrDid(prof) : getDisplayNameOrDid({ id: otherId });
       }
       return {
         id: c.id,

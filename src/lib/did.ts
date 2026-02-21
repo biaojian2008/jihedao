@@ -25,7 +25,7 @@ export function getDisplayDid(fid: string | number | null | undefined, customDid
   return "";
 }
 
-/** 用于展示：优先 display_name，否则 DID（含系统分配） */
+/** 用于展示：优先 display_name，否则 DID（含系统分配），永不返回空或"匿名" */
 export function getDisplayNameOrDid(profile: {
   id: string;
   display_name?: string | null;
@@ -33,10 +33,11 @@ export function getDisplayNameOrDid(profile: {
   custom_did?: string | null;
 }): string {
   const name = profile?.display_name?.trim();
-  if (name) return name;
+  if (name && name !== "匿名" && name !== "Anonymous") return name;
   const did = getDisplayDid(profile?.fid, profile?.custom_did);
   if (did) return did;
-  return getSystemDid(profile?.id ?? "");
+  const systemDid = getSystemDid(profile?.id ?? "");
+  return systemDid || `did:jihe:user_${(profile?.id ?? "unknown").slice(0, 8)}`;
 }
 
 /**

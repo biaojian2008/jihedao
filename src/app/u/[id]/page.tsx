@@ -9,7 +9,6 @@ import { createServerSupabase } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
 import { ProfileCard } from "@/components/profile/profile-card";
 import { getDisplayNameOrDid } from "@/lib/did";
-import { UserDIDView } from "@/components/reputation/user-did-view";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -71,7 +70,6 @@ export default async function UserProfilePage({ params }: Props) {
     <div className="min-h-screen pt-14 pb-20 md:pb-16">
       <main className="mx-auto max-w-xl px-4 py-8 sm:px-6 space-y-6">
         <ProfileCard profile={profile} userId={id} />
-        <UserDIDView userId={id} walletAddress={profile.wallet_address} />
       </main>
     </div>
   );

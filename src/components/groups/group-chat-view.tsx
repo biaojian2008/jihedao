@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useLocale } from "@/lib/i18n/locale-context";
-import { AddMemberModal } from "./add-member-modal";
 import { getCurrentProfileId } from "@/lib/current-user";
 
 type Message = {
@@ -47,7 +46,6 @@ export function GroupChatView({ groupId, groupName, members, canInvite }: Props)
   const [showMembers, setShowMembers] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteUrl, setInviteUrl] = useState("");
-  const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -139,25 +137,20 @@ export function GroupChatView({ groupId, groupName, members, canInvite }: Props)
   }
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col px-4" style={{ height: "calc(100vh - 8rem)" }}>
+    <div className="chat-container mx-auto max-w-xl px-4">
       <div className="mb-2 shrink-0 flex items-center justify-between gap-2 rounded-lg border border-foreground/10 bg-black/40 p-2">
         <Link href="/members" className="shrink-0 text-xs text-accent hover:underline">← {t("dm.backList")}</Link>
         <button type="button" onClick={() => setShowMembers((v) => !v)} className="min-w-0 flex-1 truncate text-left text-sm font-medium">
           {groupName} ({members.length}人)
         </button>
         {canInvite && (
-          <div className="flex gap-1">
-            <button type="button" onClick={() => setAddMemberOpen(true)} className="shrink-0 rounded border border-foreground/30 px-2 py-1 text-xs">
-              {t("groups.addMember")}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setInviteOpen(true); createInvite(); }}
-              className="shrink-0 rounded border border-accent/50 px-2 py-1 text-xs text-accent"
-            >
-              {t("groups.invite")}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => { setInviteOpen(true); createInvite(); }}
+            className="shrink-0 rounded border border-accent/50 px-2 py-1 text-xs text-accent"
+          >
+            {t("groups.invite")}
+          </button>
         )}
       </div>
       {showMembers && (
@@ -170,14 +163,6 @@ export function GroupChatView({ groupId, groupName, members, canInvite }: Props)
             </div>
           ))}
         </div>
-      )}
-      {addMemberOpen && (
-        <AddMemberModal
-          groupId={groupId}
-          existingIds={new Set(members.map((m) => m.user_id))}
-          onClose={() => setAddMemberOpen(false)}
-          onAdded={() => setAddMemberOpen(false)}
-        />
       )}
       {inviteOpen && (
         <div className="mb-2 rounded-lg border border-accent/30 bg-accent/5 p-3">
@@ -213,7 +198,7 @@ export function GroupChatView({ groupId, groupName, members, canInvite }: Props)
         <div ref={bottomRef} />
       </div>
 
-      <div className="shrink-0 border-t border-foreground/10 pt-2 pb-4" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0))" }}>
+      <div className="chat-input-wrapper shrink-0 border-t border-foreground/10 pt-2">
         {showEmoji && (
           <div
             className="mb-2 max-h-28 overflow-y-auto rounded-lg border border-foreground/10 bg-black/40 p-2"

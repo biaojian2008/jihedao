@@ -60,3 +60,34 @@ body {
 .emoji-ok {
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", var(--font-geist-mono), sans-serif;
 }
+
+/* 虚拟键盘弹出时自动调整聊天输入区 */
+@supports (height: 100dvh) {
+  .chat-input-area {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+}
+
+/* iOS 虚拟键盘适配 */
+@supports (-webkit-touch-callout: none) {
+  input:focus,
+  textarea:focus {
+    transform: translateZ(0);
+  }
+}
+
+/* 聊天容器：使用 svh 适配虚拟键盘 */
+.chat-container {
+  height: calc(100svh - 8rem);
+  height: calc(100dvh - 8rem);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 聊天输入框区域固定在底部 */
+.chat-input-wrapper {
+  position: sticky;
+  bottom: 0;
+  background: var(--background);
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0));
+}

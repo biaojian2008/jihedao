@@ -250,7 +250,7 @@ export function ChatView({ conversationId }: Props) {
   }
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col px-4" style={{ height: "calc(100vh - 8rem)", paddingBottom: "env(safe-area-inset-bottom, 0)" }}>
+    <div className="chat-container mx-auto max-w-xl px-4">
       <div className="mb-2 shrink-0">
         <div className="flex w-full items-center gap-3 rounded-lg border border-foreground/10 bg-black/40 p-2">
           <Link href="/dm" className="shrink-0 text-xs text-accent hover:underline">
@@ -319,7 +319,7 @@ export function ChatView({ conversationId }: Props) {
           onClose={() => setShowTransfer(false)}
         />
       )}
-      <div className="shrink-0 border-t border-foreground/10 pt-2 pb-4" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0))" }}>
+      <div className="chat-input-wrapper shrink-0 border-t border-foreground/10 pt-2">
         <input
           ref={galleryInputRef}
           type="file"

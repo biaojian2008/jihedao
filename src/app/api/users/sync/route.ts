@@ -75,12 +75,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ id: data.id });
     }
 
+    const wechatDefaultAvatar = avatar_url || `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(wechat_openid)}&backgroundColor=0d0d0d,1a1a2e&glassesProbability=50&accessoriesProbability=30`;
     const { data, error } = await supabase
       .from("user_profiles")
       .insert({
         wechat_openid,
         display_name: display_name || null,
-        avatar_url: avatar_url || null,
+        avatar_url: wechatDefaultAvatar,
         credit_score: 50,
       })
       .select("id")
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
   const hasAvatar = avatar_url != null && String(avatar_url).trim() !== "";
   const defaultAvatarUrl = hasAvatar
     ? avatar_url
-    : `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(privy_user_id)}&backgroundColor=0a0a0a`;
+    : `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(privy_user_id)}&backgroundColor=0d0d0d,1a1a2e&glassesProbability=50&accessoriesProbability=30`;
 
   const { data: existing } = await supabase
     .from("user_profiles")
