@@ -8,9 +8,15 @@ type ClaudeTextMessage = { role: "user" | "assistant"; content: string };
 
 export const maxDuration = 120;
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY ?? "",
-});
+/** 每次请求新建客户端，确保读到最新的 ANTHROPIC_* 环境变量（代理 Base URL 等） */
+function createAnthropicClient(): Anthropic {
+  const apiKey = process.env.ANTHROPIC_API_KEY?.trim() ?? "";
+  const baseURL = process.env.ANTHROPIC_BASE_URL?.trim();
+  return new Anthropic({
+    apiKey,
+    ...(baseURL ? { baseURL } : {}),
+  });
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
@@ -125,7 +131,7 @@ export async function POST(request: Request) {
     const modelId =
       process.env.ANTHROPIC_MODEL?.trim() || "claude-sonnet-4-20250514";
 
-    const response = await anthropic.messages.create({
+    const response = await createAnthropicClient().messages.create({
       model: modelId,
       max_tokens: 2000,
       system: systemPrompt,
