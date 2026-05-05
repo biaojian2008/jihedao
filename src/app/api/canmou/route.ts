@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
 import { questionnaires, type CanmouDomain } from "@/lib/questionnaires";
+import { createOpenAIEmbeddingsClient } from "@/lib/openai-embeddings";
 
 /** 与 Claude Messages API 兼容的纯文本轮次（追问对话） */
 type ClaudeTextMessage = { role: "user" | "assistant"; content: string };
@@ -17,9 +17,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""
 );
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY ?? "",
-});
+const openai = createOpenAIEmbeddingsClient();
 
 const systemPrompts: Record<CanmouDomain, string> = {
   immigration: `你是济和移民参谋，专注于帮助个人实现身份多元化和自由迁徙。你熟悉全球主要移民项目，包括技术移民、投资移民、创业移民、家庭团聚等路径。你的建议要基于用户的具体情况，给出最现实可行的路径，而不是泛泛而谈。不确定的政策细节要说明建议核实最新官方信息。回答分为四个部分：情况概述、推荐路径、具体步骤、注意事项。所有建议仅供参考，不构成法律意见。`,
@@ -74,8 +72,14 @@ async function retrieveRelevantContent(query: string, domain: string): Promise<s
 
 export async function POST(request: Request) {
   try {
-    if (!process.env.ANTHROPIC_API_KEY || !process.env.OPENAI_API_KEY) {
-      return Response.json({ error: "服务未配置 AI 密钥" }, { status: 503 });
+    if (!process.env.ANTHROPIC_API_KEY?.trim()) {
+      return Response.json({ error: "服务未配置 Claude（ANTHROPIC_API_KEY）" }, { status: 503 });
+    }
+    if (!process.env.OPENAI_API_KEY?.trim()) {
+      return Response.json(
+        { error: "服务未配置 OpenAI（OPENAI_API_KEY），无法做知识库向量检索" },
+        { status: 503 }
+      );
     }
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return Response.json({ error: "服务未配置数据库" }, { status: 503 });

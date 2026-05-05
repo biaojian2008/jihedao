@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
+import { createOpenAIEmbeddingsClient } from "@/lib/openai-embeddings";
 
 export const maxDuration = 300;
 
@@ -9,9 +9,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""
 );
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY ?? "",
-});
+const openai = createOpenAIEmbeddingsClient();
 
 const crawlTargets = [
   { domain: "immigration", url: "https://www.canada.ca/en/immigration-refugees-citizenship.html", name: "加拿大移民局" },
@@ -86,8 +84,12 @@ export async function GET(request: Request) {
     return Response.json({ error: "未授权" }, { status: 401 });
   }
 
-  if (!process.env.OPENAI_API_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return Response.json({ error: "环境变量未配置" }, { status: 503 });
+  if (
+    !process.env.OPENAI_API_KEY?.trim() ||
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.SUPABASE_SERVICE_ROLE_KEY
+  ) {
+    return Response.json({ error: "环境变量未配置（需 OPENAI_API_KEY 与 Supabase）" }, { status: 503 });
   }
 
   for (const target of crawlTargets) {
