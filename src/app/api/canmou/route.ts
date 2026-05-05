@@ -6,7 +6,7 @@ import { createOpenAIEmbeddingsClient } from "@/lib/openai-embeddings";
 /** 与 Claude Messages API 兼容的纯文本轮次（追问对话） */
 type ClaudeTextMessage = { role: "user" | "assistant"; content: string };
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY ?? "",
@@ -107,7 +107,10 @@ export async function POST(request: Request) {
       const userMessage = `${formattedAnswers}${relevantContent}\n\n请根据以上情况给出专业建议。`;
       firstUserMessage = userMessage;
       finalMessages = [{ role: "user", content: userMessage }];
-      await supabase.from("consultations").insert({ domain, answers });
+      const { error: consultErr } = await supabase.from("consultations").insert({ domain, answers });
+      if (consultErr) {
+        console.error("consultations insert:", consultErr.message, consultErr);
+      }
     } else if (messages && Array.isArray(messages) && messages.length > 0) {
       finalMessages = JSON.parse(JSON.stringify(messages)) as ClaudeTextMessage[];
       const last = finalMessages[finalMessages.length - 1];
@@ -119,8 +122,11 @@ export async function POST(request: Request) {
       return Response.json({ error: "请提供 answers 或 messages" }, { status: 400 });
     }
 
+    const modelId =
+      process.env.ANTHROPIC_MODEL?.trim() || "claude-sonnet-4-20250514";
+
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: modelId,
       max_tokens: 2000,
       system: systemPrompt,
       messages: finalMessages,
@@ -135,6 +141,11 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(error);
-    return Response.json({ error: "服务暂时不可用" }, { status: 500 });
+    const raw = error instanceof Error ? error.message : String(error);
+    const details = raw.length > 800 ? `${raw.slice(0, 800)}…` : raw;
+    return Response.json(
+      { error: "服务暂时不可用", details },
+      { status: 500 }
+    );
   }
 }

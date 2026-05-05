@@ -1,0 +1,11 @@
+# 复制为 .env 放在本目录或项目根目录
+
+OPENAI_API_KEY=sk-...
+# 若用聚合网关（可选）
+# OPENAI_BASE_URL=https://api.gptsapi.net/v1
+
+# 二选一填 URL；脚本优先读 SUPABASE_URL
+SUPABASE_URL=https://xxxx.supabase.co
+# NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+
+SUPABASE_SERVICE_ROLE_KEY=eyJ...

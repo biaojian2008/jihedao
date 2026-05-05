@@ -92,9 +92,15 @@ export default function CanmouDomainPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ domain: domainParam, answers: finalAnswers }),
       });
-      const data = (await r.json()) as { content?: string; firstUserMessage?: string; error?: string };
+      const data = (await r.json()) as {
+        content?: string;
+        firstUserMessage?: string;
+        error?: string;
+        details?: string;
+      };
       if (!r.ok) {
-        setError(data?.error ?? "请求失败");
+        const parts = [data?.error, data?.details].filter(Boolean);
+        setError(parts.length ? parts.join(" — ") : "请求失败");
         return;
       }
       const content = data.content ?? "";
@@ -128,10 +134,11 @@ export default function CanmouDomainPage() {
           messages: nextThread.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
-      const data = (await r.json()) as { content?: string; error?: string };
+      const data = (await r.json()) as { content?: string; error?: string; details?: string };
       if (!r.ok) {
         setFollowUp(text);
-        setError(data?.error ?? "请求失败");
+        const parts = [data?.error, data?.details].filter(Boolean);
+        setError(parts.length ? parts.join(" — ") : "请求失败");
         return;
       }
       const reply = data.content ?? "";
