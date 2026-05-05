@@ -92,7 +92,9 @@ export default function SettingsPage() {
           <h2 className="text-sm font-medium text-foreground/80">更多</h2>
           <div className="flex flex-wrap gap-2">
             <a href="/community" className="text-xs text-foreground/60 hover:text-accent">社区动态</a>
-            <a href="/intel" className="text-xs text-foreground/60 hover:text-accent">情报入口</a>
+            <Link href="/canmou" className="text-xs text-foreground/60 hover:text-accent">
+              {t("settings.canmouEntry")}
+            </Link>
             <a href="/members" className="text-xs text-foreground/60 hover:text-accent">成员</a>
           </div>
           <p className="text-[10px] text-foreground/40">版本 0.1 · 更多设定敬请期待</p>

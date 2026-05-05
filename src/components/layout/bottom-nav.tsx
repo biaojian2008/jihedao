@@ -11,7 +11,7 @@ const items = [
   { href: "/log", key: "nav.log" },
   { href: "/community", key: "nav.community" },
   { href: "/members", key: "nav.members" },
-  { href: "/intel", key: "nav.intel" },
+  { href: "/canmou", key: "nav.canmou" },
   { href: "/me", key: "nav.profile" }, // 个人中心，设定齿轮仅右上角显示
 ] as const;
 
@@ -32,7 +32,13 @@ export function BottomNav() {
             prefetch={false}
             aria-label={t(key)}
             className={`flex flex-1 min-w-0 items-center justify-center py-3 transition touch-manipulation ${
-              (href === "/me" ? isMe : pathname === href) ? "text-accent" : "text-foreground/60"
+              (href === "/me"
+                ? isMe
+                : href === "/canmou"
+                  ? pathname === "/canmou" || pathname.startsWith("/canmou/")
+                  : pathname === href)
+                ? "text-accent"
+                : "text-foreground/60"
             }`}
           >
             <NavIcon href={href} className={iconSize} />

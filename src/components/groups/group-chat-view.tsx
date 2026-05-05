@@ -133,7 +133,7 @@ export function GroupChatView({ groupId, groupName, members, canInvite }: Props)
   }
 
   if (loading) {
-    return <p className="p-8 text-center text-sm text-foreground/60">{t("intel.loading")}</p>;
+    return <p className="p-8 text-center text-sm text-foreground/60">{t("common.loading")}</p>;
   }
 
   return (

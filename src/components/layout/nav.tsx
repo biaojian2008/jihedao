@@ -13,7 +13,7 @@ const navKeys = [
   { href: "/log", key: "nav.log" },
   { href: "/community", key: "nav.community" },
   { href: "/members", key: "nav.members" },
-  { href: "/intel", key: "nav.intel" },
+  { href: "/canmou", key: "nav.canmou" },
   { href: "/settings", key: "nav.settings" },
 ] as const;
 
@@ -51,7 +51,11 @@ export function Nav() {
                 aria-label={t(key)}
                 title={t(key)}
                 className={`flex items-center justify-center p-2 rounded-md transition hover:text-accent ${
-                  pathname === href ? "text-accent" : "text-foreground/70"
+                  (href === "/canmou"
+                    ? pathname === "/canmou" || pathname.startsWith("/canmou/")
+                    : pathname === href)
+                    ? "text-accent"
+                    : "text-foreground/70"
                 }`}
               >
                 <NavIcon href={href} className="h-5 w-5 shrink-0" />
