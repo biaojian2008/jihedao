@@ -128,8 +128,9 @@ export async function POST(request: Request) {
       return Response.json({ error: "请提供 answers 或 messages" }, { status: 400 });
     }
 
+    // 官方可用 sonnet-4；多数国内代理未开通该通道，默认用 3.5 Sonnet。可用 ANTHROPIC_MODEL 覆盖。
     const modelId =
-      process.env.ANTHROPIC_MODEL?.trim() || "claude-sonnet-4-20250514";
+      process.env.ANTHROPIC_MODEL?.trim() || "claude-3-5-sonnet-20241022";
 
     const response = await createAnthropicClient().messages.create({
       model: modelId,
