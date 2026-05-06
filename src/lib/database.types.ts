@@ -176,6 +176,40 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["messages"]["Insert"]>;
       };
+      skill_categories: {
+        Row: {
+          id: string;
+          order_num: number;
+          name: string;
+          description: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["skill_categories"]["Row"], "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["skill_categories"]["Insert"]>;
+      };
+      skills: {
+        Row: {
+          id: string;
+          category_id: string | null;
+          name: string;
+          summary: string | null;
+          content: string | null;
+          difficulty: string | null;
+          resources: string | null;
+          order_num: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["skills"]["Row"], "id" | "created_at" | "updated_at"> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["skills"]["Insert"]>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

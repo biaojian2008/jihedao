@@ -4,6 +4,8 @@ import { HomePublishButton } from "@/components/home/home-publish-button";
 import { HomeSearchButton } from "@/components/home/home-search-button";
 import { AdminInlineEdit } from "@/components/admin/admin-inline-edit";
 import { HomeActionButtons } from "@/components/home/home-action-buttons";
+import { HomeOfficialLogsSection } from "@/components/home/home-official-logs";
+import { fetchOfficialLogsForHome } from "@/lib/official-logs-home";
 
 type Locale = "zh" | "en" | "ja";
 type CmsResolved = {
@@ -244,6 +246,7 @@ export default async function Home() {
   const locale = (cookieStore.get("jihe_locale")?.value as Locale) || "zh";
   const validLocale: Locale = locale === "en" || locale === "ja" ? locale : "zh";
   const cms = await getCms(validLocale);
+  const officialLogs = await fetchOfficialLogsForHome();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -343,6 +346,8 @@ export default async function Home() {
             </div>
           </section>
         ) : null}
+
+        <HomeOfficialLogsSection logs={officialLogs} />
 
         {/* 四大板块：标题与内容可在后台 cms_config 中配置 bottom_one_title / bottom_one_body 等 */}
         <section className="mt-12 rounded-xl border border-foreground/10 bg-black/40 p-6 sm:mt-16">

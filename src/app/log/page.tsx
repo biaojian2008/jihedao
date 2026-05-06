@@ -1,90 +1,20 @@
 /**
- * 日志 (Log) - 官方进展流
- * 数据来自 Supabase official_logs，按时间倒序；title/content 支持多语言 { zh, en, ja }
+ * /log — 超级个体技能库（URL 沿用原「官方日志」入口）
  */
-import Link from "next/link";
-import { cookies } from "next/headers";
-import { createServerSupabase } from "@/lib/supabase-server";
-import { LogPageTitle } from "@/components/log/log-page-title";
-import { LogShareButton } from "@/components/log/log-share-button";
-import { AdminInlineEdit } from "@/components/admin/admin-inline-edit";
-import { resolveText, type Locale } from "@/lib/i18n/resolve";
-
-const placeholderLogs: { id: string; title: string; date: string; excerpt: string }[] = [
-  { id: "1", title: "广元之行筹备", date: "2025-02-14", excerpt: "明日广元之行的行程与目标记录…" },
-  { id: "2", title: "社区协议草案", date: "2025-02-12", excerpt: "济和 DAO 社区协作与信用协议初稿讨论。" },
-];
-
-function toLocale(v: string | undefined): Locale {
-  return v === "en" || v === "ja" ? v : "zh";
-}
+import { fetchSkillCategoriesWithSkills } from "@/lib/skills-queries";
+import { SkillsLibraryClient } from "@/components/skills/skills-library-client";
 
 export default async function LogPage() {
-  let logs: { id: string; title: string; date: string; excerpt: string; cover_image_url?: string }[] = placeholderLogs;
-  try {
-    const cookieStore = await cookies();
-    const locale = toLocale(cookieStore.get("jihe_locale")?.value);
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      const supabase = createServerSupabase();
-      const { data } = await supabase
-        .from("official_logs")
-        .select("id, title, content, date, cover_image_url")
-        .order("date", { ascending: false });
-      if (data?.length) {
-        logs = data.map((r) => {
-          const content = String(resolveText(r?.content, locale) ?? "");
-          const title = String(resolveText(r?.title, locale) ?? "");
-          return {
-            id: String(r?.id ?? ""),
-            title: title || "未命名",
-            date: String(r?.date ?? ""),
-            excerpt: content.slice(0, 80) + (content.length > 80 ? "…" : ""),
-            cover_image_url: r?.cover_image_url ?? undefined,
-          };
-        });
-      }
-    }
-  } catch {
-    // keep placeholder
-  }
+  const categories = await fetchSkillCategoriesWithSkills();
 
   return (
     <div className="min-h-screen pt-14 pb-20 md:pb-16">
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <LogPageTitle />
-          <AdminInlineEdit variant="logs" buttonLabel="编辑 / 发布日志" />
-        </div>
-        <ul className="space-y-4">
-          {logs.map((log) => (
-            <li key={log.id} className="group flex items-start gap-2 rounded-xl border border-foreground/10 bg-black/40 transition hover:border-accent/40 hover:bg-black/60">
-              <Link href={`/log/${log.id}`} className="min-w-0 flex-1 p-4">
-                {log.cover_image_url && (
-                  <div className="mb-3 -mx-4 -mt-4 overflow-hidden rounded-t-xl">
-                    {/\.(mp4|webm|mov|ogg)(\?|$)/i.test(log.cover_image_url) ? (
-                      <video src={log.cover_image_url} className="aspect-video w-full object-cover" muted playsInline />
-                    ) : (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={log.cover_image_url} alt="" className="aspect-video w-full object-cover" />
-                    )}
-                  </div>
-                )}
-                <time className="text-[10px] uppercase tracking-wider text-accent/80">
-                  {log.date}
-                </time>
-                <h2 className="mt-1 text-base font-semibold text-foreground">
-                  {log.title}
-                </h2>
-                <p className="mt-1 text-xs text-foreground/70 line-clamp-2">
-                  {log.excerpt}
-                </p>
-              </Link>
-              <div className="shrink-0 pt-4 pr-2">
-                <LogShareButton logId={log.id} title={log.title} excerpt={log.excerpt} />
-              </div>
-            </li>
-          ))}
-        </ul>
+        <header className="mb-8">
+          <h1 className="text-2xl font-semibold text-foreground">超级个体技能库</h1>
+          <p className="mt-2 text-sm text-foreground/70">系统失效时你依然能运作的能力</p>
+        </header>
+        <SkillsLibraryClient categories={categories} />
       </main>
     </div>
   );

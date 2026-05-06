@@ -36,7 +36,9 @@ export function BottomNav() {
                 ? isMe
                 : href === "/canmou"
                   ? pathname === "/canmou" || pathname.startsWith("/canmou/")
-                  : pathname === href)
+                  : href === "/log"
+                    ? pathname === "/log" || pathname.startsWith("/skills/")
+                    : pathname === href)
                 ? "text-accent"
                 : "text-foreground/60"
             }`}

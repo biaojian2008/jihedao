@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CanmouHistorySection } from "./canmou-history-section";
 import { questionnaires } from "@/lib/questionnaires";
 
 const cards: { domain: keyof typeof questionnaires; desc: string }[] = [
@@ -20,6 +21,8 @@ export default function CanmouHomePage() {
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">济和参谋</h1>
           <p className="mt-2 text-sm text-foreground/70">为超级个体提供专业咨询参谋</p>
         </header>
+
+        <CanmouHistorySection />
 
         <ul className="space-y-3">
           {cards.map(({ domain, desc }) => {

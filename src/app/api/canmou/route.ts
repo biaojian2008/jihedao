@@ -49,7 +49,7 @@ const systemPrompts: Record<CanmouDomain, string> = {
 
   banking: `你是济和银行参谋，专注于帮助个人在多个司法管辖区建立银行账户，实现金融主权。你熟悉香港、新加坡、美国、欧洲等主要地区的开户要求、KYC流程和注意事项。建议要具体说明开户条件、所需材料和常见被拒原因。回答分为四个部分：情况概述、推荐路径、具体步骤、注意事项。所有建议仅供参考，具体开户流程以银行最新要求为准。`,
 
-  legal: `你是济和法律参谋，专注于帮助个人了解自己的法律权利，在与系统的博弈中不处于信息劣势。你熟悉劳动、合同、房产、婚姻、公司、跨境等常见法律问题的基本框架。建议要帮助用户理解自己的权利和选项，复杂案件必须说明需要咨询持牌律师。回答分为四个部分：情况概述、权利说明、建议行动、注意事项。所有建议仅供参考，不构成法律意见。`,
+  legal: `你是济和法律与维权参谋，专注于帮助个人了解自己的法律权利，在与系统的博弈中不处于信息劣势。你熟悉劳动、合同、房产、婚姻、公司、跨境等常见法律问题的基本框架。建议要帮助用户理解自己的权利和选项，复杂案件必须说明需要咨询持牌律师。回答分为四个部分：情况概述、权利说明、建议行动、注意事项。所有建议仅供参考，不构成法律意见。`,
 
   medical: `你是济和就医参谋，专注于帮助个人在全球范围内找到最适合自己的医疗资源，不被单一医疗体系限制。你熟悉主要国家的医疗体系、就医流程、医疗旅游目的地和跨境购药的合法渠道。建议要具体说明就医流程、费用预期和注意事项。回答分为四个部分：情况概述、推荐路径、具体步骤、注意事项。所有建议仅供参考，具体医疗决策请咨询执业医师。`,
 
@@ -108,8 +108,12 @@ export async function POST(request: Request) {
       domain?: string;
       answers?: Record<string, string>;
       messages?: ClaudeTextMessage[];
+      clientToken?: string;
+      consultationId?: string;
     };
     const { domain: domainRaw, answers, messages } = body;
+    const clientToken =
+      typeof body.clientToken === "string" ? body.clientToken.trim().slice(0, 128) : "";
     const domain = domainRaw as CanmouDomain;
 
     if (!domainRaw || !systemPrompts[domain]) {
@@ -119,6 +123,7 @@ export async function POST(request: Request) {
     const systemPrompt = systemPrompts[domain];
     let finalMessages: ClaudeTextMessage[];
     let firstUserMessage: string | undefined;
+    let answersForSave: Record<string, string> | undefined;
 
     if (answers && typeof answers === "object" && !Array.isArray(answers)) {
       const formattedAnswers = formatAnswers(domain, answers);
@@ -126,10 +131,7 @@ export async function POST(request: Request) {
       const userMessage = `${formattedAnswers}${relevantContent}\n\n请根据以上情况给出专业建议。`;
       firstUserMessage = userMessage;
       finalMessages = [{ role: "user", content: userMessage }];
-      const { error: consultErr } = await supabase.from("consultations").insert({ domain, answers });
-      if (consultErr) {
-        console.error("consultations insert:", consultErr.message, consultErr);
-      }
+      answersForSave = answers;
     } else if (messages && Array.isArray(messages) && messages.length > 0) {
       finalMessages = JSON.parse(JSON.stringify(messages)) as ClaudeTextMessage[];
       const last = finalMessages[finalMessages.length - 1];
@@ -155,17 +157,60 @@ export async function POST(request: Request) {
     const block = response.content[0];
     const text = block?.type === "text" ? block.text : "";
 
+    let consultationId: string | undefined;
+
+    if (answersForSave) {
+      const insertRow: {
+        domain: string;
+        answers: Record<string, string>;
+        result: string;
+        client_token?: string;
+      } = {
+        domain,
+        answers: answersForSave,
+        result: text,
+      };
+      if (clientToken) insertRow.client_token = clientToken;
+
+      const { data: inserted, error: insertErr } = await supabase
+        .from("consultations")
+        .insert(insertRow)
+        .select("id")
+        .single();
+
+      if (insertErr) {
+        console.error("consultations insert:", insertErr.message, insertErr);
+      } else if (inserted?.id) {
+        consultationId = inserted.id as string;
+      }
+    } else if (messages && messages.length > 0 && body.consultationId && clientToken) {
+      const cid = String(body.consultationId).trim();
+      const { data: owned } = await supabase
+        .from("consultations")
+        .select("id")
+        .eq("id", cid)
+        .eq("client_token", clientToken)
+        .maybeSingle();
+      if (owned?.id) {
+        const { error: upErr } = await supabase.from("consultations").update({ result: text }).eq("id", cid);
+        if (upErr) console.error("consultations update:", upErr.message, upErr);
+        else consultationId = cid;
+      }
+    }
+
     return Response.json({
       content: text,
       ...(firstUserMessage !== undefined ? { firstUserMessage } : {}),
+      ...(consultationId ? { consultationId } : {}),
     });
   } catch (error) {
     console.error(error);
     const raw = error instanceof Error ? error.message : String(error);
     const details = raw.length > 800 ? `${raw.slice(0, 800)}…` : raw;
-    return Response.json(
-      { error: "服务暂时不可用", details },
-      { status: 500 }
-    );
+    const noChannel = /model_not_found|No available channel/i.test(raw);
+    const errorText = noChannel
+      ? "Claude 网关返回「无可用通道」：当前账户被路由到的分发线（如 Claude-Krio 企业对接）未开通你请求的模型。这与本站代码、令牌模型白名单无关，需在蓝移侧开通对应模型通道、调整套餐/线路，或更换为其他提供 Anthropic 兼容 API 的平台并在 Vercel 配置 ANTHROPIC_API_KEY 与 ANTHROPIC_BASE_URL。"
+      : "服务暂时不可用";
+    return Response.json({ error: errorText, details }, { status: noChannel ? 503 : 500 });
   }
 }

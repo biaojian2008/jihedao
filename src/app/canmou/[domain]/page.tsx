@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getOrCreateCanmouClientToken } from "@/lib/canmou-client-token";
 import { isCanmouDomain, questionnaires, type QuestionItem } from "@/lib/questionnaires";
 
 type ChatTurn = { role: "user" | "assistant"; content: string };
@@ -32,6 +33,7 @@ export default function CanmouDomainPage() {
   const [advice, setAdvice] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatTurn[]>([]);
   const [followUp, setFollowUp] = useState("");
+  const [consultationId, setConsultationId] = useState<string | null>(null);
 
   const questions = def?.questions ?? [];
   const current = questions[step];
@@ -90,11 +92,16 @@ export default function CanmouDomainPage() {
       const r = await fetch("/api/canmou", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain: domainParam, answers: finalAnswers }),
+        body: JSON.stringify({
+          domain: domainParam,
+          answers: finalAnswers,
+          clientToken: getOrCreateCanmouClientToken(),
+        }),
       });
       const data = (await r.json()) as {
         content?: string;
         firstUserMessage?: string;
+        consultationId?: string;
         error?: string;
         details?: string;
       };
@@ -132,9 +139,16 @@ export default function CanmouDomainPage() {
         body: JSON.stringify({
           domain: domainParam,
           messages: nextThread.map((m) => ({ role: m.role, content: m.content })),
+          clientToken: getOrCreateCanmouClientToken(),
+          ...(consultationId ? { consultationId } : {}),
         }),
       });
-      const data = (await r.json()) as { content?: string; error?: string; details?: string };
+      const data = (await r.json()) as {
+        content?: string;
+        consultationId?: string;
+        error?: string;
+        details?: string;
+      };
       if (!r.ok) {
         setFollowUp(text);
         const parts = [data?.error, data?.details].filter(Boolean);
@@ -144,6 +158,7 @@ export default function CanmouDomainPage() {
       const reply = data.content ?? "";
       setChatMessages([...nextThread, { role: "assistant", content: reply }]);
       setAdvice(reply);
+      if (data.consultationId) setConsultationId(data.consultationId);
     } catch {
       setFollowUp(text);
       setError("网络错误");
@@ -193,6 +208,16 @@ export default function CanmouDomainPage() {
             <h1 className="text-lg font-semibold text-foreground">参谋建议</h1>
             <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">{advice}</div>
             <p className="mt-4 border-t border-foreground/10 pt-3 text-[11px] leading-relaxed text-foreground/55">{DISCLAIMER}</p>
+            {consultationId ? (
+              <p className="mt-3 text-center text-xs text-foreground/55">
+                <Link
+                  href={`/canmou/history/${consultationId}`}
+                  className="text-accent underline-offset-2 hover:underline"
+                >
+                  在历史记录中打开本条
+                </Link>
+              </p>
+            ) : null}
           </article>
 
           <section className="mt-6">

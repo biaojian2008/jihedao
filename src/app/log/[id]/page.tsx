@@ -55,7 +55,7 @@ export default async function LogDetailPage({ params }: Props) {
     <div className="min-h-screen pt-14 pb-20 md:pb-16">
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <div className="mb-6 flex items-center justify-between gap-2">
-          <LogDetailBack />
+          <LogDetailBack href="/" />
           <div className="flex items-center gap-2">
             <AdminInlineEdit
               variant="log-detail"

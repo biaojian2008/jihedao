@@ -53,7 +53,9 @@ export function Nav() {
                 className={`flex items-center justify-center p-2 rounded-md transition hover:text-accent ${
                   (href === "/canmou"
                     ? pathname === "/canmou" || pathname.startsWith("/canmou/")
-                    : pathname === href)
+                    : href === "/log"
+                      ? pathname === "/log" || pathname.startsWith("/skills/")
+                      : pathname === href)
                     ? "text-accent"
                     : "text-foreground/70"
                 }`}
