@@ -8,10 +8,23 @@ type ClaudeTextMessage = { role: "user" | "assistant"; content: string };
 
 export const maxDuration = 120;
 
+/**
+ * Anthropic SDK 会在 baseURL 后追加 `/v1/messages`。
+ * 若环境变量写成 `https://xxx/v1` 或误写成 `.../v1/v1`，会变成 `/v1/v1/messages` 报 404。
+ */
+function normalizeAnthropicBaseURL(url: string): string {
+  let u = url.trim().replace(/\/+$/, "");
+  while (/\/v1$/i.test(u)) {
+    u = u.replace(/\/v1$/i, "").replace(/\/+$/, "");
+  }
+  return u;
+}
+
 /** 每次请求新建客户端，确保读到最新的 ANTHROPIC_* 环境变量（代理 Base URL 等） */
 function createAnthropicClient(): Anthropic {
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim() ?? "";
-  const baseURL = process.env.ANTHROPIC_BASE_URL?.trim();
+  const raw = process.env.ANTHROPIC_BASE_URL?.trim();
+  const baseURL = raw ? normalizeAnthropicBaseURL(raw) : undefined;
   return new Anthropic({
     apiKey,
     ...(baseURL ? { baseURL } : {}),
@@ -128,9 +141,9 @@ export async function POST(request: Request) {
       return Response.json({ error: "请提供 answers 或 messages" }, { status: 400 });
     }
 
-    // 官方可用 sonnet-4；多数国内代理未开通该通道，默认用 3.5 Sonnet。可用 ANTHROPIC_MODEL 覆盖。
+    // 模型 ID（如 claude-3-5-sonnet-20240620），勿将 API 密钥填进 ANTHROPIC_MODEL。可用 ANTHROPIC_MODEL 覆盖。
     const modelId =
-      process.env.ANTHROPIC_MODEL?.trim() || "claude-3-5-sonnet-20241022";
+      process.env.ANTHROPIC_MODEL?.trim() || "claude-3-5-sonnet-20240620";
 
     const response = await createAnthropicClient().messages.create({
       model: modelId,
