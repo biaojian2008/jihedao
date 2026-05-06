@@ -141,9 +141,9 @@ export async function POST(request: Request) {
       return Response.json({ error: "请提供 answers 或 messages" }, { status: 400 });
     }
 
-    // 模型 ID（如 claude-3-5-sonnet-20240620），勿将 API 密钥填进 ANTHROPIC_MODEL。可用 ANTHROPIC_MODEL 覆盖。
+    // 模型 ID（须与网关可用列表一致）。蓝移等代理常缺旧快照通道，可用 Vercel 的 ANTHROPIC_MODEL 覆盖；勿把 API 密钥填进 ANTHROPIC_MODEL。
     const modelId =
-      process.env.ANTHROPIC_MODEL?.trim() || "claude-3-5-sonnet-20240620";
+      process.env.ANTHROPIC_MODEL?.trim() || "claude-3-5-sonnet-20241022";
 
     const response = await createAnthropicClient().messages.create({
       model: modelId,
