@@ -1,5 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
+import { getProfileIdFromCookieHeader } from "@/lib/current-user";
+import {
+  CANMOU_FOLLOWUP_COST,
+  CANMOU_MAIN_COST,
+  deductCoins,
+  JIHE_COIN_REASONS,
+} from "@/lib/jihe-coin";
 import { questionnaires, type CanmouDomain } from "@/lib/questionnaires";
 import { createOpenAIEmbeddingsClient } from "@/lib/openai-embeddings";
 
@@ -104,6 +111,11 @@ export async function POST(request: Request) {
       return Response.json({ error: "服务未配置数据库" }, { status: 503 });
     }
 
+    const profileId = getProfileIdFromCookieHeader(request.headers.get("cookie"));
+    if (!profileId) {
+      return Response.json({ error: "请先登录后再使用济和参谋" }, { status: 401 });
+    }
+
     const body = (await request.json()) as {
       domain?: string;
       answers?: Record<string, string>;
@@ -124,8 +136,30 @@ export async function POST(request: Request) {
     let finalMessages: ClaudeTextMessage[];
     let firstUserMessage: string | undefined;
     let answersForSave: Record<string, string> | undefined;
+    let followUpConsultationId: string | null = null;
 
     if (answers && typeof answers === "object" && !Array.isArray(answers)) {
+      const deduct = await deductCoins(supabase, {
+        userId: profileId,
+        amount: CANMOU_MAIN_COST,
+        reason: JIHE_COIN_REASONS.CANMOU_MAIN,
+        referenceType: "canmou",
+        referenceId: domain,
+      });
+      if (!deduct.ok) {
+        if (deduct.error === "insufficient balance") {
+          return Response.json(
+            {
+              error: `济和币余额不足，主咨询需 ${CANMOU_MAIN_COST} 济和币`,
+              code: "INSUFFICIENT_JIHE",
+              required: CANMOU_MAIN_COST,
+            },
+            { status: 402 }
+          );
+        }
+        return Response.json({ error: deduct.error ?? "扣款失败" }, { status: 400 });
+      }
+
       const formattedAnswers = formatAnswers(domain, answers);
       const relevantContent = await retrieveRelevantContent(formattedAnswers, domain);
       const userMessage = `${formattedAnswers}${relevantContent}\n\n请根据以上情况给出专业建议。`;
@@ -133,6 +167,62 @@ export async function POST(request: Request) {
       finalMessages = [{ role: "user", content: userMessage }];
       answersForSave = answers;
     } else if (messages && Array.isArray(messages) && messages.length > 0) {
+      const lastIncoming = messages[messages.length - 1];
+      if (lastIncoming?.role !== "user") {
+        return Response.json({ error: "无效的消息序列" }, { status: 400 });
+      }
+      if (messages.length < 3) {
+        return Response.json({ error: "追问需在原主咨询对话之后进行" }, { status: 400 });
+      }
+
+      const cid = typeof body.consultationId === "string" ? body.consultationId.trim() : "";
+      if (!cid) {
+        return Response.json({ error: "追问需关联咨询记录，请从主问卷重新生成建议后再追问" }, { status: 400 });
+      }
+
+      const { data: cons, error: consErr } = await supabase
+        .from("consultations")
+        .select("id, user_id, client_token")
+        .eq("id", cid)
+        .maybeSingle();
+
+      if (consErr || !cons?.id) {
+        return Response.json({ error: "咨询记录不存在或已失效" }, { status: 404 });
+      }
+
+      const row = cons as { id: string; user_id?: string | null; client_token?: string | null };
+      const ownerUserId = row.user_id ?? null;
+      const rowToken = (row.client_token ?? "").trim();
+      const owned =
+        (ownerUserId && ownerUserId === profileId) ||
+        (!ownerUserId && Boolean(clientToken) && rowToken === clientToken);
+
+      if (!owned) {
+        return Response.json({ error: "无权在该记录下追问" }, { status: 403 });
+      }
+
+      const deduct = await deductCoins(supabase, {
+        userId: profileId,
+        amount: CANMOU_FOLLOWUP_COST,
+        reason: JIHE_COIN_REASONS.CANMOU_FOLLOWUP,
+        referenceType: "canmou",
+        referenceId: cid,
+      });
+      if (!deduct.ok) {
+        if (deduct.error === "insufficient balance") {
+          return Response.json(
+            {
+              error: `济和币余额不足，每条追问需 ${CANMOU_FOLLOWUP_COST} 济和币`,
+              code: "INSUFFICIENT_JIHE",
+              required: CANMOU_FOLLOWUP_COST,
+            },
+            { status: 402 }
+          );
+        }
+        return Response.json({ error: deduct.error ?? "扣款失败" }, { status: 400 });
+      }
+
+      followUpConsultationId = cid;
       finalMessages = JSON.parse(JSON.stringify(messages)) as ClaudeTextMessage[];
       const last = finalMessages[finalMessages.length - 1];
       if (last?.role === "user" && typeof last.content === "string") {
@@ -143,7 +233,6 @@ export async function POST(request: Request) {
       return Response.json({ error: "请提供 answers 或 messages" }, { status: 400 });
     }
 
-    // 模型 ID（须与网关可用列表一致）。蓝移等代理常缺旧快照通道，可用 Vercel 的 ANTHROPIC_MODEL 覆盖；勿把 API 密钥填进 ANTHROPIC_MODEL。
     const modelId =
       process.env.ANTHROPIC_MODEL?.trim() || "claude-3-5-sonnet-20241022";
 
@@ -165,10 +254,12 @@ export async function POST(request: Request) {
         answers: Record<string, string>;
         result: string;
         client_token?: string;
+        user_id: string;
       } = {
         domain,
         answers: answersForSave,
         result: text,
+        user_id: profileId,
       };
       if (clientToken) insertRow.client_token = clientToken;
 
@@ -183,19 +274,13 @@ export async function POST(request: Request) {
       } else if (inserted?.id) {
         consultationId = inserted.id as string;
       }
-    } else if (messages && messages.length > 0 && body.consultationId && clientToken) {
-      const cid = String(body.consultationId).trim();
-      const { data: owned } = await supabase
+    } else if (followUpConsultationId) {
+      const { error: upErr } = await supabase
         .from("consultations")
-        .select("id")
-        .eq("id", cid)
-        .eq("client_token", clientToken)
-        .maybeSingle();
-      if (owned?.id) {
-        const { error: upErr } = await supabase.from("consultations").update({ result: text }).eq("id", cid);
-        if (upErr) console.error("consultations update:", upErr.message, upErr);
-        else consultationId = cid;
-      }
+        .update({ result: text })
+        .eq("id", followUpConsultationId);
+      if (upErr) console.error("consultations update:", upErr.message, upErr);
+      else consultationId = followUpConsultationId;
     }
 
     return Response.json({

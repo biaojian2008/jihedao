@@ -19,3 +19,17 @@ export function setCurrentProfileId(id: string): void {
   localStorage.setItem(STORAGE_KEY, id);
   document.cookie = `${PROFILE_ID_COOKIE}=${encodeURIComponent(id)}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
 }
+
+/** 从 HTTP Cookie 头解析当前用户 profile id（供 Route Handler 使用） */
+export function getProfileIdFromCookieHeader(cookieHeader: string | null): string | null {
+  if (!cookieHeader) return null;
+  const escaped = PROFILE_ID_COOKIE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const m = cookieHeader.match(new RegExp(`(?:^| )${escaped}=([^;]+)`));
+  const v = m?.[1];
+  if (!v) return null;
+  try {
+    return decodeURIComponent(v.trim());
+  } catch {
+    return null;
+  }
+}

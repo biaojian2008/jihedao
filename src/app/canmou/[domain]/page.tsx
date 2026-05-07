@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getOrCreateCanmouClientToken } from "@/lib/canmou-client-token";
+import { CANMOU_FOLLOWUP_COST, CANMOU_MAIN_COST } from "@/lib/jihe-coin";
 import { isCanmouDomain, questionnaires, type QuestionItem } from "@/lib/questionnaires";
 
 type ChatTurn = { role: "user" | "assistant"; content: string };
@@ -34,6 +35,25 @@ export default function CanmouDomainPage() {
   const [chatMessages, setChatMessages] = useState<ChatTurn[]>([]);
   const [followUp, setFollowUp] = useState("");
   const [consultationId, setConsultationId] = useState<string | null>(null);
+  const [jiheBalance, setJiheBalance] = useState<number | null>(null);
+
+  const refreshJiheBalance = useCallback(async () => {
+    try {
+      const r = await fetch("/api/jihe-coin/balance");
+      if (!r.ok) {
+        setJiheBalance(null);
+        return;
+      }
+      const data = (await r.json()) as { balance?: number };
+      setJiheBalance(typeof data.balance === "number" ? data.balance : null);
+    } catch {
+      setJiheBalance(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshJiheBalance();
+  }, [refreshJiheBalance]);
 
   const questions = def?.questions ?? [];
   const current = questions[step];
@@ -104,12 +124,18 @@ export default function CanmouDomainPage() {
         consultationId?: string;
         error?: string;
         details?: string;
+        code?: string;
       };
       if (!r.ok) {
+        if (r.status === 401) {
+          setError("请先登录后再使用济和参谋（登录后刷新本页）。");
+          return;
+        }
         const parts = [data?.error, data?.details].filter(Boolean);
         setError(parts.length ? parts.join(" — ") : "请求失败");
         return;
       }
+      void refreshJiheBalance();
       const content = data.content ?? "";
       const firstUser = data.firstUserMessage ?? "";
       setAdvice(content);
@@ -127,7 +153,7 @@ export default function CanmouDomainPage() {
 
   const sendFollowUp = async () => {
     const text = followUp.trim();
-    if (!text || !valid || chatMessages.length === 0) return;
+    if (!text || !valid || chatMessages.length === 0 || !consultationId) return;
     setLoading(true);
     setError(null);
     const nextThread: ChatTurn[] = [...chatMessages, { role: "user", content: text }];
@@ -148,13 +174,19 @@ export default function CanmouDomainPage() {
         consultationId?: string;
         error?: string;
         details?: string;
+        code?: string;
       };
       if (!r.ok) {
         setFollowUp(text);
+        if (r.status === 401) {
+          setError("请先登录后再追问（登录后刷新本页）。");
+          return;
+        }
         const parts = [data?.error, data?.details].filter(Boolean);
         setError(parts.length ? parts.join(" — ") : "请求失败");
         return;
       }
+      void refreshJiheBalance();
       const reply = data.content ?? "";
       setChatMessages([...nextThread, { role: "assistant", content: reply }]);
       setAdvice(reply);
@@ -222,6 +254,11 @@ export default function CanmouDomainPage() {
 
           <section className="mt-6">
             <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-accent/80">继续追问</h2>
+            <p className="mb-2 text-[11px] text-foreground/50">
+              每条追问消耗 {CANMOU_FOLLOWUP_COST} 济和币
+              {jiheBalance !== null ? ` · 当前余额 ${jiheBalance}` : null}
+              {!consultationId ? " · 若主记录未保存则无法追问，请重新提交问卷。" : null}
+            </p>
             <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-foreground/10 p-2 text-xs">
               {chatMessages.length <= 2 ? (
                 <p className="px-1 py-2 text-foreground/45">在下方输入追问，对话将带上完整上文。</p>
@@ -247,7 +284,7 @@ export default function CanmouDomainPage() {
               />
               <button
                 type="button"
-                disabled={loading || !followUp.trim()}
+                disabled={loading || !followUp.trim() || !consultationId}
                 onClick={() => void sendFollowUp()}
                 className="shrink-0 self-end rounded-lg border border-accent bg-accent/15 px-4 py-2 text-sm font-medium text-accent hover:bg-accent hover:text-black disabled:opacity-40"
               >
@@ -335,11 +372,16 @@ export default function CanmouDomainPage() {
 
         {error ? <p className="mt-3 text-xs text-red-500">{error}</p> : null}
 
+        <p className="mt-4 text-center text-[11px] text-foreground/50">
+          生成参谋建议将消耗 {CANMOU_MAIN_COST} 济和币
+          {jiheBalance !== null ? ` · 当前余额 ${jiheBalance}` : null}
+        </p>
+
         <button
           type="button"
           disabled={loading}
           onClick={goNext}
-          className="mt-6 w-full rounded-full border border-accent bg-accent px-4 py-3 text-sm font-semibold text-black hover:bg-accent/90 disabled:opacity-50"
+          className="mt-3 w-full rounded-full border border-accent bg-accent px-4 py-3 text-sm font-semibold text-black hover:bg-accent/90 disabled:opacity-50"
         >
           {loading ? "生成中…" : step + 1 >= total ? "生成参谋建议" : "下一题"}
         </button>

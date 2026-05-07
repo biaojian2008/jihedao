@@ -1,5 +1,7 @@
 python-dotenv>=1.0.0
 openai>=1.40.0
-supabase>=2.6.0
+# supabase>=2.11 会依赖 pyiceberg，Windows 上常需安装 Visual C++ Build Tools 才能编译。
+# 入库脚本仅需 PostgREST，锁定 <2.11 可避免该依赖。
+supabase>=2.6.0,<2.11.0
 pypdf>=4.0.0
 yt-dlp>=2024.1.0

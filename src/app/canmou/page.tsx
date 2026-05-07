@@ -20,6 +20,9 @@ export default function CanmouHomePage() {
         <header className="mb-8 text-center">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">济和参谋</h1>
           <p className="mt-2 text-sm text-foreground/70">为超级个体提供专业咨询参谋</p>
+          <p className="mt-3 text-xs leading-relaxed text-foreground/55">
+            使用需登录。主问卷咨询每次消耗 10 济和币；主建议生成后的每条追问消耗 5 济和币。
+          </p>
         </header>
 
         <CanmouHistorySection />

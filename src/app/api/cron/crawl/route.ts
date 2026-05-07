@@ -1,8 +1,9 @@
 import * as cheerio from "cheerio";
 import { createClient } from "@supabase/supabase-js";
 import { createOpenAIEmbeddingsClient } from "@/lib/openai-embeddings";
+import { crawlTargetsSeed } from "@/app/api/cron/crawl-targets.seed";
 
-export const maxDuration = 300;
+export const maxDuration = 800;
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
@@ -11,21 +12,22 @@ const supabase = createClient(
 
 const openai = createOpenAIEmbeddingsClient();
 
-const crawlTargets = [
-  { domain: "immigration", url: "https://www.canada.ca/en/immigration-refugees-citizenship.html", name: "加拿大移民局" },
-  { domain: "immigration", url: "https://immi.homeaffairs.gov.au", name: "澳大利亚移民局" },
-  { domain: "immigration", url: "https://www.ica.gov.sg", name: "新加坡移民局" },
-  { domain: "immigration", url: "https://www.uscis.gov", name: "美国移民局" },
-  { domain: "tax", url: "https://www.ird.gov.hk", name: "香港税务局" },
-  { domain: "tax", url: "https://www.iras.gov.sg", name: "新加坡税务局" },
-  { domain: "offshore", url: "https://www.cr.gov.hk", name: "香港公司注册处" },
-  { domain: "offshore", url: "https://www.acra.gov.sg", name: "新加坡会计与企业管制局" },
-  { domain: "banking", url: "https://www.hkma.gov.hk", name: "香港金融管理局" },
-  { domain: "banking", url: "https://www.mas.gov.sg", name: "新加坡金融管理局" },
-  { domain: "legal", url: "https://www.doj.gov.hk", name: "香港律政司" },
-  { domain: "education", url: "https://www.educanada.ca", name: "加拿大留学" },
-  { domain: "medical", url: "https://www.moh.gov.sg", name: "新加坡卫生部" },
-];
+type CrawlTarget = { domain: string; url: string; name: string };
+
+/** 同一 domain 下 name 重复时保留先出现的条目（与 knowledge_base.source 去重一致） */
+function dedupeCrawlTargets(rows: CrawlTarget[]): CrawlTarget[] {
+  const seen = new Set<string>();
+  const out: CrawlTarget[] = [];
+  for (const r of rows) {
+    const k = `${r.domain}:${r.name}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(r);
+  }
+  return out;
+}
+
+const crawlTargets = dedupeCrawlTargets(crawlTargetsSeed);
 
 async function crawlUrl(url: string): Promise<string> {
   try {
@@ -97,7 +99,7 @@ export async function GET(request: Request) {
     if (content) {
       await embedAndStore(content, target.domain, target.name);
     }
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
   }
 
   return Response.json({ success: true, time: new Date().toISOString() });

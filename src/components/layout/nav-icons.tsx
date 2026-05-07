@@ -22,6 +22,17 @@ export function IconLog({ className }: { className?: string }) {
   );
 }
 
+/** 技能库：分层 / 能力栈（与日志文档图标区分） */
+export function IconSkills({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 2 7 12 12 22 7 12 2" />
+      <polyline points="2 17 12 22 22 17" />
+      <polyline points="2 12 12 17 22 12" />
+    </svg>
+  );
+}
+
 /** 社区：内容/动态流（非“人头”以与成员区分） */
 export function IconCommunity({ className }: { className?: string }) {
   return (
@@ -239,7 +250,7 @@ export function IconMic({ className }: { className?: string }) {
 
 const iconMap = {
   "/": IconHome,
-  "/log": IconLog,
+  "/log": IconSkills,
   "/community": IconCommunity,
   "/members": IconMembers,
   "/dm": IconChat,

@@ -13,7 +13,14 @@ export const JIHE_COIN_REASONS = {
   BADGE_ISSUED: "获得勋章",
   SHARE: "分享给好友",
   MANUAL: "管理员发放",
+  CANMOU_MAIN: "济和参谋·主咨询",
+  CANMOU_FOLLOWUP: "济和参谋·追问",
 } as const;
+
+/** 济和参谋：主问卷咨询一次消耗的济和币 */
+export const CANMOU_MAIN_COST = 10;
+/** 济和参谋：每条追问消耗的济和币 */
+export const CANMOU_FOLLOWUP_COST = 5;
 
 /** 各行为发放数量（可后续改为从 cms_config 读取） */
 export const JIHE_COIN_RULES: Record<string, number> = {
