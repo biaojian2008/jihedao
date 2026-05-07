@@ -3,7 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import { createOpenAIEmbeddingsClient } from "@/lib/openai-embeddings";
 import { crawlTargetsSeed } from "@/app/api/cron/crawl-targets.seed";
 
-export const maxDuration = 800;
+/** Vercel Hobby 上 Serverless 的 maxDuration 上限为 300 秒 */
+export const maxDuration = 300;
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
