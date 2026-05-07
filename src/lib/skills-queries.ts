@@ -9,6 +9,11 @@ export type SkillCategoryWithSkills = {
   skills: SkillListItem[];
 };
 
+function logSkillQueryError(context: string, err: { message?: string } | null) {
+  if (process.env.NODE_ENV !== "development" || !err?.message) return;
+  console.error(`[skills-queries] ${context}:`, err.message);
+}
+
 export async function fetchSkillCategoriesWithSkills(): Promise<SkillCategoryWithSkills[]> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return [];
@@ -19,12 +24,20 @@ export async function fetchSkillCategoriesWithSkills(): Promise<SkillCategoryWit
       .from("skill_categories")
       .select("id, order_num, name, description")
       .order("order_num", { ascending: true });
-    if (catErr || !cats?.length) return [];
+    if (catErr) {
+      logSkillQueryError("skill_categories", catErr);
+      return [];
+    }
+    if (!cats?.length) return [];
+
     const { data: skills, error: skErr } = await supabase
       .from("skills")
       .select("id, category_id, name, order_num")
       .order("order_num", { ascending: true });
-    if (skErr) return [];
+    if (skErr) {
+      logSkillQueryError("skills", skErr);
+    }
+
     const byCat = new Map<string, SkillListItem[]>();
     for (const s of skills || []) {
       const cid = s.category_id as string | null;
