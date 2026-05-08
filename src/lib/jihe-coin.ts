@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 /** 发放原因枚举，便于统计与展示 */
 export const JIHE_COIN_REASONS = {
+  REGISTRATION: "首次注册",
   POST_CREATE: "发帖",
   COMMENT_CREATE: "评论",
   POST_LIKED: "帖子被点赞",
@@ -24,6 +25,7 @@ export const CANMOU_FOLLOWUP_COST = 5;
 
 /** 各行为发放数量（可后续改为从 cms_config 读取） */
 export const JIHE_COIN_RULES: Record<string, number> = {
+  [JIHE_COIN_REASONS.REGISTRATION]: 50,
   [JIHE_COIN_REASONS.POST_CREATE]: 5,
   [JIHE_COIN_REASONS.COMMENT_CREATE]: 2,
   [JIHE_COIN_REASONS.POST_LIKED]: 1,

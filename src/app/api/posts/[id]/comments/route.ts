@@ -5,9 +5,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getDisplayNameOrDid } from "@/lib/did";
+import { JIHE_COIN_REASONS, JIHE_COIN_RULES, awardCoins } from "@/lib/jihe-coin";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function GET(
   request: NextRequest,
@@ -118,6 +120,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .select("id, author_id, content, created_at")
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (serviceKey && url) {
+    const admin = createClient(url, serviceKey);
+    const cAmt = JIHE_COIN_RULES[JIHE_COIN_REASONS.COMMENT_CREATE] ?? 2;
+    await awardCoins(admin, {
+      userId: authorId,
+      amount: cAmt,
+      reason: JIHE_COIN_REASONS.COMMENT_CREATE,
+      referenceType: "comment",
+      referenceId: data.id,
+    }).catch(() => {});
+  }
   const { data: profile } = await supabase
     .from("user_profiles")
     .select("id, display_name, fid, custom_did")

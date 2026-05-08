@@ -6,6 +6,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { JIHE_COIN_REASONS, JIHE_COIN_RULES, awardCoins } from "@/lib/jihe-coin";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -14,6 +15,19 @@ const key = serviceKey || anonKey;
 const rlsHint =
   !serviceKey &&
   "若报 RLS/策略错误，请在 .env.local 和 Vercel 中配置 SUPABASE_SERVICE_ROLE_KEY（Supabase 项目 Settings → API → service_role，长 JWT）。";
+
+async function awardFirstRegistrationBonus(userId: string) {
+  if (!serviceKey || !url) return;
+  const admin = createClient(url, serviceKey);
+  const amount = JIHE_COIN_RULES[JIHE_COIN_REASONS.REGISTRATION] ?? 50;
+  await awardCoins(admin, {
+    userId,
+    amount,
+    reason: JIHE_COIN_REASONS.REGISTRATION,
+    referenceType: "registration",
+    referenceId: userId,
+  }).catch(() => {});
+}
 
 type Body =
   | {
@@ -90,6 +104,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       return err(error.message, 500, hint);
     }
+    await awardFirstRegistrationBonus(data.id);
     return NextResponse.json({ id: data.id });
   }
 
@@ -153,5 +168,6 @@ export async function POST(request: NextRequest) {
   if (error) {
     return err(error.message, 500, hint);
   }
+  await awardFirstRegistrationBonus(data.id);
   return NextResponse.json({ id: data.id });
 }

@@ -262,7 +262,11 @@ export function ProfileCard({ profile, userId }: Props) {
               content={
                 <>
                   <p>去中心化身份标识，是您在平台内的唯一身份凭证。</p>
-                  <p className="mt-2">格式：did:jihe:@用户名 或 Farcaster FID。一旦保存不可修改。</p>
+                  <p className="mt-2">
+                    Farcaster 同步为 <span className="font-mono">farcaster:FID</span>；自定义为{" "}
+                    <span className="font-mono">jihe:用户名</span>（3–20 位字母数字）；未设置时为{" "}
+                    <span className="font-mono">jihe:</span>加档案唯一数字。保存后不可改。
+                  </p>
                 </>
               }
             >
@@ -309,7 +313,23 @@ export function ProfileCard({ profile, userId }: Props) {
         <div>
           <dt className="flex items-center gap-1">
             <span className="text-accent">{t("profile.jiheCoin")}</span>
-            <TipPopover title="济和币" content={<><p>平台内积分，用于参与项目、任务、课程等。</p><p className="mt-2">获得方式：发帖 +5、评论 +2、被点赞 +1、完成任务 +10、获得勋章 +20。可用于抵押、冻结、转账。</p></>}>
+            <TipPopover
+              title="济和币"
+              content={
+                <>
+                  <p>平台内积分，用于参谋咨询、帖子抵押、转账等。</p>
+                  <p className="mt-2 font-medium text-foreground">获得方式</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-4 text-foreground/90">
+                    <li>首次注册档案：+50</li>
+                    <li>分享给好友：+10（每日最多一次）</li>
+                    <li>发帖：+5</li>
+                    <li>发表评论：+2</li>
+                    <li>你的帖子被他人点赞：+1（自赞不计）</li>
+                    <li>完成任务、获得勋章等按活动规则另行发放</li>
+                  </ul>
+                </>
+              }
+            >
               <IconInfo className="h-3 w-3 shrink-0 cursor-pointer text-foreground/60 hover:text-accent" />
             </TipPopover>
           </dt>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getDisplayDid, getDisplayNameOrDid } from "@/lib/did";
+import { getDisplayDid, getDisplayNameOrDid, getSystemDid } from "@/lib/did";
 import { getCurrentProfileId } from "@/lib/current-user";
 import { useLocale } from "@/lib/i18n/locale-context";
 import {
@@ -34,7 +34,7 @@ export function MemberCard({ member, lastMessage, isBlockedTab, onUnblock }: Pro
   const { t } = useLocale();
   const currentId = getCurrentProfileId();
   const isOwn = currentId === member.id;
-  const displayDid = getDisplayDid(member.fid, member.custom_did);
+  const displayDid = getDisplayDid(member.fid, member.custom_did) || getSystemDid(member.id);
   const [following, setFollowing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [blocking, setBlocking] = useState(false);

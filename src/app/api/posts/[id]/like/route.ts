@@ -3,9 +3,11 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { JIHE_COIN_REASONS, JIHE_COIN_RULES, awardCoins } from "@/lib/jihe-coin";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function GET(
   request: NextRequest,
@@ -51,6 +53,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (error) {
     if (error.code === "23505") return NextResponse.json({ ok: true }); // already liked
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  if (serviceKey && url) {
+    const { data: post } = await supabase.from("posts").select("author_id").eq("id", postId).maybeSingle();
+    const authorId = post ? (post as { author_id?: string }).author_id : null;
+    if (authorId && authorId !== userId) {
+      const admin = createClient(url, serviceKey);
+      const likeAmt = JIHE_COIN_RULES[JIHE_COIN_REASONS.POST_LIKED] ?? 1;
+      await awardCoins(admin, {
+        userId: authorId,
+        amount: likeAmt,
+        reason: JIHE_COIN_REASONS.POST_LIKED,
+        referenceType: "post_like",
+        referenceId: postId,
+      }).catch(() => {});
+    }
   }
   return NextResponse.json({ ok: true });
 }

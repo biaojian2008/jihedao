@@ -1,26 +1,38 @@
 /**
  * 个人中心 DID 展示与校验：
- * - Farcaster 登录：使用 Farcaster DID did:farcaster:{fid}
- * - 非 Farcaster：可自定义 did:jihe:{handle}，handle 需全局唯一（前端校验 + API 查重）
- * - 未设置时：系统分配 did:jihe:user_{id前8位}
+ * - Farcaster 同步：`farcaster:{fid}`（fid 为数字或字符串）
+ * - 非 Farcaster 自定义：存库为 handle，展示为 `jihe:{handle}`（小写）
+ * - 未设置且无 Farcaster：系统分配 `jihe:{uuid十进制}`（由档案 UUID 唯一映射，非 user_ 前缀）
  */
 
-/** 系统分配 DID（当用户未设置 custom_did 且无 Farcaster 时） */
+/** 将档案 UUID 映射为稳定十进制串，展示为 jihe:{n} */
 export function getSystemDid(profileId: string): string {
-  if (!profileId || profileId.length < 8) return "";
-  return `did:jihe:user_${profileId.replace(/-/g, "").slice(0, 8)}`;
+  if (!profileId) return "";
+  const hex = profileId.replace(/-/g, "").toLowerCase();
+  if (hex.length !== 32 || !/^[0-9a-f]+$/.test(hex)) return "";
+  try {
+    const n = BigInt(`0x${hex}`);
+    return `jihe:${n.toString()}`;
+  } catch {
+    return "";
+  }
 }
 
-/** Farcaster 标准：did:farcaster:<fid>；fid 可能为数字或字符串（DB/API 返回不一） */
+/** Farcaster：`farcaster:{fid}`；自定义：`jihe:{handle}` */
 export function getDisplayDid(fid: string | number | null | undefined, customDid: string | null | undefined): string {
   const fidStr = fid != null ? String(fid).trim() : "";
   if (fidStr !== "") {
-    if (fidStr.startsWith("did:")) return fidStr;
-    return `did:farcaster:${fidStr}`;
+    if (fidStr.toLowerCase().startsWith("farcaster:")) return fidStr;
+    if (fidStr.toLowerCase().startsWith("did:farcaster:")) return `farcaster:${fidStr.slice("did:farcaster:".length)}`;
+    return `farcaster:${fidStr}`;
   }
   const customStr = customDid != null ? String(customDid).trim() : "";
   if (customStr !== "") {
-    return `did:jihe:${customStr.toLowerCase()}`;
+    const lower = customStr.toLowerCase();
+    let tail = customStr.trim();
+    if (lower.startsWith("did:jihe:")) tail = tail.slice(9).trim();
+    else if (lower.startsWith("jihe:")) tail = tail.slice(5).trim();
+    return `jihe:${tail.toLowerCase()}`;
   }
   return "";
 }
@@ -37,7 +49,9 @@ export function getDisplayNameOrDid(profile: {
   const did = getDisplayDid(profile?.fid, profile?.custom_did);
   if (did) return did;
   const systemDid = getSystemDid(profile?.id ?? "");
-  return systemDid || `did:jihe:user_${(profile?.id ?? "unknown").slice(0, 8)}`;
+  if (systemDid) return systemDid;
+  const id = profile?.id ?? "";
+  return id ? `jihe:${id.replace(/-/g, "").toLowerCase()}` : "";
 }
 
 /**
@@ -59,11 +73,14 @@ export function validateCustomDidHandle(handle: string): { ok: boolean; error?: 
   return { ok: true };
 }
 
-/** 从完整 did:jihe:xxx、@handle 或纯 handle 解析出 handle（小写，无 @） */
+/** 从完整 jihe: / did:jihe:、@handle 或纯 handle 解析出 handle（小写，无 @） */
 export function normalizeCustomDidInput(input: string): string {
   let s = input.trim();
-  if (s.toLowerCase().startsWith("did:jihe:")) {
-    s = s.slice(9).trim();
+  const low = s.toLowerCase();
+  if (low.startsWith("did:jihe:")) {
+    s = s.slice("did:jihe:".length).trim();
+  } else if (low.startsWith("jihe:")) {
+    s = s.slice("jihe:".length).trim();
   }
   if (s.startsWith("@")) s = s.slice(1).trim();
   return s.toLowerCase();
