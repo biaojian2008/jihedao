@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { PrivyProvider as Privy, usePrivy } from "@privy-io/react-auth";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { AuthProvider } from "@/lib/auth-context";
@@ -17,12 +18,22 @@ const LOGIN_NOT_CONFIGURED_MSG =
 function PrivyAuthBridge({ children }: { children: React.ReactNode }) {
   const privy = usePrivy();
   const { data: session, status } = useSession();
+  /** NextAuth 在部分部署环境下 /api/auth/session 长期 loading，会导致 ready 永假、个人中心等页面一直「加载中」 */
+  const [nextAuthUnstick, setNextAuthUnstick] = useState(false);
+  useEffect(() => {
+    if (status !== "loading") {
+      setNextAuthUnstick(false);
+      return;
+    }
+    const t = window.setTimeout(() => setNextAuthUnstick(true), 7000);
+    return () => window.clearTimeout(t);
+  }, [status]);
   const nextAuthIn = status === "authenticated";
   const byWechat = !privy.authenticated && !!session?.user?.openid;
   const fc = getFarcasterFromPrivyUser(privy.user as Parameters<typeof getFarcasterFromPrivyUser>[0]);
   const value = {
-    /** NextAuth 会话拉取完成且 Privy SDK 就绪后再切换登录/登出 UI，避免已登录仍短暂显示 Login */
-    ready: privy.ready && status !== "loading",
+    /** Privy 就绪即可交互；NextAuth 若长时间 loading 则超时放行，避免全站卡在加载态 */
+    ready: privy.ready && (status !== "loading" || nextAuthUnstick),
     authenticated: privy.authenticated || nextAuthIn,
     authSource: (byWechat ? "wechat" : "privy") as "wechat" | "privy",
     login: privy.login,
@@ -51,8 +62,17 @@ function PrivyAuthBridge({ children }: { children: React.ReactNode }) {
 
 function WechatOnlyAuth({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
+  const [nextAuthUnstick, setNextAuthUnstick] = useState(false);
+  useEffect(() => {
+    if (status !== "loading") {
+      setNextAuthUnstick(false);
+      return;
+    }
+    const t = window.setTimeout(() => setNextAuthUnstick(true), 7000);
+    return () => window.clearTimeout(t);
+  }, [status]);
   const value = {
-    ready: status !== "loading",
+    ready: status !== "loading" || nextAuthUnstick,
     authenticated: status === "authenticated",
     authSource: (session?.user?.openid ? "wechat" : undefined) as "wechat" | undefined,
     login: () => window.alert(LOGIN_NOT_CONFIGURED_MSG),

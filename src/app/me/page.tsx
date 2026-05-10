@@ -19,6 +19,14 @@ export default function MePage() {
   const { ready, authenticated, user, login, logout } = useAuth();
   const [status, setStatus] = useState<Status>("idle");
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [stuckIdle, setStuckIdle] = useState(false);
+
+  useEffect(() => {
+    if (status !== "idle") return;
+    const t = window.setTimeout(() => setStuckIdle(true), 12000);
+    return () => window.clearTimeout(t);
+  }, [status]);
+
   const started = useRef(false);
 
   const doSync = useCallback(
@@ -208,13 +216,28 @@ export default function MePage() {
     );
   }
 
+  if (stuckIdle && status === "idle") {
+    return (
+      <div className="min-h-screen pt-14 pb-20 md:pb-16">
+        <main className="mx-auto max-w-xl px-4 py-8 text-center sm:px-6">
+          <h1 className="mb-2 text-xl font-semibold text-foreground">个人中心</h1>
+          <p className="text-sm text-foreground/80">
+            页面初始化超时。多为登录状态未能及时就绪（请检查部署环境中的 NEXTAUTH_URL / NEXTAUTH_SECRET，以及浏览器是否拦截 Cookie）。
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="rounded-full border border-accent bg-accent/10 px-4 py-2 text-xs font-semibold text-accent hover:bg-accent hover:text-black"
+            >
+              刷新页面
+            </button>
+          </div>
+          {links}
+        </main>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen pt-14 pb-20 md:pb-16">
-      <main className="mx-auto max-w-xl px-4 py-8 text-center sm:px-6">
-        <h1 className="mb-2 text-xl font-semibold text-foreground">个人中心</h1>
-        <p className="text-sm text-foreground/60">加载中…</p>
-        {links}
-      </main>
-    </div>
-  );
 }
