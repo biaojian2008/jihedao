@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getDisplayDid, getDisplayNameOrDid, getSystemDid } from "@/lib/did";
+import { getDisplayNameOrDid, getResolvedDid } from "@/lib/did";
 import { getCurrentProfileId } from "@/lib/current-user";
 import { useLocale } from "@/lib/i18n/locale-context";
 import {
@@ -34,7 +34,8 @@ export function MemberCard({ member, lastMessage, isBlockedTab, onUnblock }: Pro
   const { t } = useLocale();
   const currentId = getCurrentProfileId();
   const isOwn = currentId === member.id;
-  const displayDid = getDisplayDid(member.fid, member.custom_did) || getSystemDid(member.id);
+  const resolvedDid = getResolvedDid(member);
+  const primaryLabel = getDisplayNameOrDid(member);
   const [following, setFollowing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [blocking, setBlocking] = useState(false);
@@ -129,10 +130,10 @@ export function MemberCard({ member, lastMessage, isBlockedTab, onUnblock }: Pro
           <div className="flex items-start justify-between gap-2">
             <Link href={`/dm?with=${member.id}`} className="min-w-0 flex-1">
               <span className="font-medium text-foreground hover:text-accent">
-                {getDisplayNameOrDid(member)}
+                {primaryLabel}
               </span>
-              {displayDid && (
-                <p className="mt-0.5 font-mono text-[10px] text-foreground/60 break-all">{displayDid}</p>
+              {resolvedDid && primaryLabel !== resolvedDid && (
+                <p className="mt-0.5 font-mono text-[10px] text-foreground/60 break-all">{resolvedDid}</p>
               )}
             </Link>
             {lastMessage ? (

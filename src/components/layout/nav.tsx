@@ -91,10 +91,10 @@ export function Nav() {
             </Link>
           </div>
 
-          {/* 已登录：桌面显示个人中心+登出；手机端仅底部栏有个人中心 */}
+          {/* 已登录：顶栏显示个人中心 + 登出（含手机端；此前仅 md 以上显示导致手机一直像未登录） */}
           {ready &&
             (authenticated ? (
-              <div className="hidden md:flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                 <Link
                   href="/me"
                   aria-label={t("nav.profile")}
@@ -106,7 +106,7 @@ export function Nav() {
                 <button
                   type="button"
                   onClick={logout}
-                  className="text-xs text-foreground/60 hover:text-accent"
+                  className="text-xs text-foreground/60 hover:text-accent whitespace-nowrap"
                 >
                   {t("nav.logout")}
                 </button>
@@ -118,7 +118,7 @@ export function Nav() {
                   onClick={() => setLoginOpen(true)}
                   className="rounded-full border border-accent bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent hover:text-black md:px-4 md:py-2"
                 >
-                  Login
+                  {t("nav.login")}
                 </button>
                 {loginOpen && (
                   <div className="fixed inset-0 z-[100] flex items-center justify-center pt-[12vh] bg-black/60" onClick={() => setLoginOpen(false)}>

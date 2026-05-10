@@ -6,7 +6,7 @@ import { getCurrentProfileId } from "@/lib/current-user";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { TranslateButton } from "@/components/translate-button";
 import { TransferModal } from "@/components/transfer/transfer-modal";
-import { getDisplayDid, getDisplayNameOrDid } from "@/lib/did";
+import { getDisplayNameOrDid } from "@/lib/did";
 import { IconMic } from "@/components/layout/nav-icons";
 
 type Message = {

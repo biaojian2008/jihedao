@@ -16,12 +16,14 @@ const LOGIN_NOT_CONFIGURED_MSG =
 
 function PrivyAuthBridge({ children }: { children: React.ReactNode }) {
   const privy = usePrivy();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const nextAuthIn = status === "authenticated";
   const byWechat = !privy.authenticated && !!session?.user?.openid;
   const fc = getFarcasterFromPrivyUser(privy.user as Parameters<typeof getFarcasterFromPrivyUser>[0]);
   const value = {
-    ready: true,
-    authenticated: privy.authenticated || !!session,
+    /** NextAuth 会话拉取完成且 Privy SDK 就绪后再切换登录/登出 UI，避免已登录仍短暂显示 Login */
+    ready: privy.ready && status !== "loading",
+    authenticated: privy.authenticated || nextAuthIn,
     authSource: (byWechat ? "wechat" : "privy") as "wechat" | "privy",
     login: privy.login,
     loginWithWechat: () => signIn("wechat", { callbackUrl: "/" }),
@@ -48,10 +50,10 @@ function PrivyAuthBridge({ children }: { children: React.ReactNode }) {
 }
 
 function WechatOnlyAuth({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const value = {
-    ready: true,
-    authenticated: !!session,
+    ready: status !== "loading",
+    authenticated: status === "authenticated",
     authSource: (session?.user?.openid ? "wechat" : undefined) as "wechat" | undefined,
     login: () => window.alert(LOGIN_NOT_CONFIGURED_MSG),
     loginWithWechat: () => signIn("wechat", { callbackUrl: "/" }),

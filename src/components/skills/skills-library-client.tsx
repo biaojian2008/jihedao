@@ -26,7 +26,7 @@ export function SkillsLibraryClient({ categories }: Props) {
         return (
           <div
             key={cat.id}
-            className="overflow-hidden rounded-xl border border-foreground/10 bg-black/40 transition hover:border-accent/40 hover:bg-black/60"
+            className="overflow-hidden rounded-xl border border-foreground/15 bg-foreground/[0.02] transition hover:border-accent/50 hover:bg-foreground/[0.04]"
           >
             <button
               type="button"
@@ -34,8 +34,8 @@ export function SkillsLibraryClient({ categories }: Props) {
               className="flex w-full items-start justify-between gap-2 p-4 text-left"
             >
               <div className="min-w-0">
-                <h2 className="text-base font-semibold text-foreground">{cat.name}</h2>
-                {cat.description ? <p className="mt-1 text-xs text-foreground/60">{cat.description}</p> : null}
+                <h2 className="text-sm font-medium text-accent">{cat.name}</h2>
+                {cat.description ? <p className="mt-1 text-xs text-foreground/65">{cat.description}</p> : null}
               </div>
               <span className="shrink-0 rounded-full border border-foreground/20 px-2 py-0.5 text-[10px] text-foreground/70">
                 {cat.skills.length} 项

@@ -1,43 +1,92 @@
 /**
  * 个人中心 DID 展示与校验：
- * - Farcaster 同步：`farcaster:{fid}`（fid 为数字或字符串）
- * - 非 Farcaster 自定义：存库为 handle，展示为 `jihe:{handle}`（小写）
- * - 未设置且无 Farcaster：系统分配 `jihe:{uuid十进制}`（由档案 UUID 唯一映射，非 user_ 前缀）
+ * - Farcaster 同步：`farcaster:{fid}`
+ * - 非 Farcaster 自定义：存库为 handle，展示为 `jihe:{handle}`（字母数字 handle）
+ * - 未设置且无 Farcaster：系统分配 `jihe:` + **7 位数字**（由档案 UUID 稳定映射）
  */
 
-/** 将档案 UUID 映射为稳定十进制串，展示为 jihe:{n} */
+const JIHE_DIGITS = 7;
+const JIHE_MOD = 10 ** JIHE_DIGITS; // 0000000–9999999
+
+/** 系统分配：jihe: + 7 位数字（UUID 十六进制取模，稳定、简短） */
 export function getSystemDid(profileId: string): string {
   if (!profileId) return "";
   const hex = profileId.replace(/-/g, "").toLowerCase();
   if (hex.length !== 32 || !/^[0-9a-f]+$/.test(hex)) return "";
   try {
-    const n = BigInt(`0x${hex}`);
-    return `jihe:${n.toString()}`;
+    const n = BigInt(`0x${hex}`) % BigInt(JIHE_MOD);
+    const digits = n.toString().padStart(JIHE_DIGITS, "0");
+    return `jihe:${digits}`;
   } catch {
     return "";
   }
 }
 
-/** Farcaster：`farcaster:{fid}`；自定义：`jihe:{handle}` */
-export function getDisplayDid(fid: string | number | null | undefined, customDid: string | null | undefined): string {
+export type ResolvedDidProfile = {
+  id: string;
+  fid?: string | number | null;
+  custom_did?: string | null;
+};
+
+/**
+ * 解析最终展示的 DID（含系统分配与「误存超长数字」的兼容）
+ */
+export function getResolvedDid(profile: ResolvedDidProfile): string {
+  const fidStr = profile.fid != null ? String(profile.fid).trim() : "";
+  if (fidStr !== "") {
+    if (fidStr.toLowerCase().startsWith("farcaster:")) return fidStr;
+    if (fidStr.toLowerCase().startsWith("did:farcaster:")) {
+      return `farcaster:${fidStr.slice("did:farcaster:".length)}`;
+    }
+    return `farcaster:${fidStr}`;
+  }
+
+  const raw = profile.custom_did != null ? String(profile.custom_did).trim() : "";
+  if (raw !== "") {
+    let tail = raw.trim();
+    const lower = tail.toLowerCase();
+    if (lower.startsWith("did:jihe:")) tail = tail.slice("did:jihe:".length).trim();
+    else if (lower.startsWith("jihe:")) tail = tail.slice("jihe:".length).trim();
+    const t = tail.toLowerCase();
+    // 曾误把 UUID 转成的整串十进制写入 custom_did，改为与用户 id 一致的 7 位 jihe 号
+    if (/^\d+$/.test(t) && t.length > JIHE_DIGITS) {
+      return getSystemDid(profile.id);
+    }
+    return `jihe:${t}`;
+  }
+
+  return getSystemDid(profile.id);
+}
+
+/** 兼容旧调用：若传入 profileId，行为与 getResolvedDid 一致 */
+export function getDisplayDid(
+  fid: string | number | null | undefined,
+  customDid: string | null | undefined,
+  profileId?: string
+): string {
+  if (profileId) {
+    return getResolvedDid({ id: profileId, fid, custom_did: customDid });
+  }
   const fidStr = fid != null ? String(fid).trim() : "";
   if (fidStr !== "") {
     if (fidStr.toLowerCase().startsWith("farcaster:")) return fidStr;
-    if (fidStr.toLowerCase().startsWith("did:farcaster:")) return `farcaster:${fidStr.slice("did:farcaster:".length)}`;
+    if (fidStr.toLowerCase().startsWith("did:farcaster:")) {
+      return `farcaster:${fidStr.slice("did:farcaster:".length)}`;
+    }
     return `farcaster:${fidStr}`;
   }
-  const customStr = customDid != null ? String(customDid).trim() : "";
-  if (customStr !== "") {
-    const lower = customStr.toLowerCase();
-    let tail = customStr.trim();
-    if (lower.startsWith("did:jihe:")) tail = tail.slice(9).trim();
-    else if (lower.startsWith("jihe:")) tail = tail.slice(5).trim();
+  const raw = customDid != null ? String(customDid).trim() : "";
+  if (raw !== "") {
+    let tail = raw.trim();
+    const lower = tail.toLowerCase();
+    if (lower.startsWith("did:jihe:")) tail = tail.slice("did:jihe:".length).trim();
+    else if (lower.startsWith("jihe:")) tail = tail.slice("jihe:".length).trim();
     return `jihe:${tail.toLowerCase()}`;
   }
   return "";
 }
 
-/** 用于展示：优先 display_name，否则 DID（含系统分配），永不返回空或"匿名" */
+/** 用于展示：优先 display_name，否则 DID（含系统分配） */
 export function getDisplayNameOrDid(profile: {
   id: string;
   display_name?: string | null;
@@ -46,12 +95,7 @@ export function getDisplayNameOrDid(profile: {
 }): string {
   const name = profile?.display_name?.trim();
   if (name && name !== "匿名" && name !== "Anonymous") return name;
-  const did = getDisplayDid(profile?.fid, profile?.custom_did);
-  if (did) return did;
-  const systemDid = getSystemDid(profile?.id ?? "");
-  if (systemDid) return systemDid;
-  const id = profile?.id ?? "";
-  return id ? `jihe:${id.replace(/-/g, "").toLowerCase()}` : "";
+  return getResolvedDid(profile);
 }
 
 /**

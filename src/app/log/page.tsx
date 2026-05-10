@@ -13,7 +13,7 @@ export default async function LogPage() {
     <div className="min-h-screen pt-14 pb-20 md:pb-16">
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <header className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight text-accent">超级个体技能库</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">超级个体技能库</h1>
           <p className="mt-2 text-sm text-foreground/70">系统失效时你依然能运作的能力</p>
         </header>
         <SkillsLibraryClient categories={categories} />

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { useLocale } from "@/lib/i18n/locale-context";
-import { getDisplayDid, getDisplayNameOrDid, getSystemDid } from "@/lib/did";
+import { getDisplayNameOrDid, getResolvedDid } from "@/lib/did";
 import { getCurrentProfileId, setCurrentProfileId } from "@/lib/current-user";
 import { getFarcasterFromPrivyUser } from "@/lib/privy-farcaster";
 import { useAuth } from "@/lib/auth-context";
@@ -33,7 +33,7 @@ export function ProfileCard({ profile, userId }: Props) {
   const privy = usePrivy();
   const { logout } = useAuth();
   const isOwnProfile = getCurrentProfileId() === userId;
-  const displayDid = getDisplayDid(profile.fid, profile.custom_did) || getSystemDid(userId);
+  const displayDid = getResolvedDid({ id: userId, fid: profile.fid, custom_did: profile.custom_did });
 
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? "");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -263,9 +263,9 @@ export function ProfileCard({ profile, userId }: Props) {
                 <>
                   <p>去中心化身份标识，是您在平台内的唯一身份凭证。</p>
                   <p className="mt-2">
-                    Farcaster 同步为 <span className="font-mono">farcaster:FID</span>；自定义为{" "}
-                    <span className="font-mono">jihe:用户名</span>（3–20 位字母数字）；未设置时为{" "}
-                    <span className="font-mono">jihe:</span>加档案唯一数字。保存后不可改。
+                    Farcaster 为 <span className="font-mono">farcaster:…</span>；自定义为{" "}
+                    <span className="font-mono">jihe:用户名</span>（3–20 位字母数字）；未设置系统号为{" "}
+                    <span className="font-mono">jihe:</span>加 7 位数字。保存后不可改。
                   </p>
                 </>
               }
