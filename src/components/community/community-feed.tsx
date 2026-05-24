@@ -207,7 +207,6 @@ export function CommunityFeed() {
             className="rounded-lg border border-foreground/20 bg-black/40 px-3 py-2 text-xs text-foreground"
           >
             <option value="">{t("community.allTypes")}</option>
-            <option value="project">{t("community.type.project")}</option>
             <option value="task">{t("community.type.task")}</option>
             <option value="product">{t("community.type.product")}</option>
             <option value="service">{t("community.type.service")}</option>

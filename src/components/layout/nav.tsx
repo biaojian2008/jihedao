@@ -11,6 +11,7 @@ import { NavIcon } from "./nav-icons";
 const navKeys = [
   { href: "/", key: "nav.home" },
   { href: "/log", key: "nav.log" },
+  { href: "/projects", key: "nav.projects" },
   { href: "/community", key: "nav.community" },
   { href: "/members", key: "nav.members" },
   { href: "/canmou", key: "nav.canmou" },

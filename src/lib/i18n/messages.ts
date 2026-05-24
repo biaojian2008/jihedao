@@ -7,6 +7,7 @@ export const messages: Record<Locale, Record<string, string>> = {
   zh: {
     "nav.home": "首页",
     "nav.log": "技能库",
+    "nav.projects": "项目",
     "nav.community": "社区",
     "nav.members": "成员",
     "members.tabAll": "全部",
@@ -209,6 +210,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     "nav.home": "Home",
     "nav.log": "Skills",
     "nav.community": "Community",
+    "nav.projects": "Projects",
     "nav.members": "Members",
     "members.tabAll": "All",
     "members.tabFollowing": "Following",
@@ -406,6 +408,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     "nav.home": "ホーム",
     "nav.log": "スキル",
     "nav.community": "コミュニティ",
+    "nav.projects": "プロジェクト",
     "nav.members": "メンバー",
     "members.tabAll": "すべて",
     "members.tabFollowing": "フォロー中",

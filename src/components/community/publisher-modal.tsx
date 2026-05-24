@@ -14,7 +14,6 @@ const CONTENT_MAX = 10000;
 const POST_TYPES = [
   { value: "product", key: "community.type.product" },
   { value: "service", key: "community.type.service" },
-  { value: "project", key: "community.type.project" },
   { value: "task", key: "community.type.task" },
   { value: "course", key: "community.type.course" },
   { value: "demand", key: "community.type.demand" },
@@ -109,12 +108,11 @@ export function PublisherModal({ open, onClose }: Props) {
   const [success, setSuccess] = useState(false);
   const [showStanceEmoji, setShowStanceEmoji] = useState(false);
 
-  const isProject = type === "project";
   const isTask = type === "task";
   const isProduct = type === "product";
   const isService = type === "service";
   const isProductOrService = isProduct || isService;
-  const isProjectOrTask = isProject || isTask;
+  const isProjectOrTask = isTask;
 
   const reset = () => {
     setStep("type");
@@ -160,30 +158,6 @@ export function PublisherModal({ open, onClose }: Props) {
     if (effectiveTitle.length > TITLE_MAX || content.length > CONTENT_MAX) {
       setError(t("publisher.errorFillRequired"));
       return;
-    }
-    if (isProject) {
-      const coll = Number(authorCollateral) || 0;
-      const freeze = Number(participantFreeze) || 0;
-      if (coll <= 0) {
-        setError(t("publisher.authorCollateral") + " 必填且 > 0");
-        return;
-      }
-      if (freeze <= 0) {
-        setError(t("publisher.participantFreeze") + " 必填且 > 0");
-        return;
-      }
-      if (!expectedDuration.trim()) {
-        setError(t("publisher.expectedDuration") + " 必填");
-        return;
-      }
-      if (!details.trim()) {
-        setError(t("publisher.details") + " 必填");
-        return;
-      }
-      if (!returnsDescription.trim()) {
-        setError(t("publisher.returnsDescription") + " 必填");
-        return;
-      }
     }
     if (isProductOrService) {
       const price = Number(productPrice);
@@ -444,76 +418,6 @@ export function PublisherModal({ open, onClose }: Props) {
               <p className="mt-0.5 text-right text-[10px] text-foreground/40">{content.length}/{CONTENT_MAX}</p>
             </div>
 
-            {/* 项目：抵押、冻结、时长、具体内容、收益、归还 */}
-            {type === "project" && (
-              <div className="mb-3 space-y-2 rounded-lg border border-accent/30 bg-accent/5 p-3">
-                <p className="text-xs font-medium text-accent">抵押与冻结（项目必填）</p>
-                <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.authorCollateral")} *</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      placeholder="0"
-                      value={authorCollateral}
-                      onChange={(e) => setAuthorCollateral(e.target.value)}
-                      className="w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.participantFreeze")} *</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      placeholder="0"
-                      value={participantFreeze}
-                      onChange={(e) => setParticipantFreeze(e.target.value)}
-                      className="w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.expectedDuration")} *</label>
-                  <input
-                    placeholder="例：2 周"
-                    value={expectedDuration}
-                    onChange={(e) => setExpectedDuration(e.target.value.slice(0, 200))}
-                    className="w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.details")} *（具体做什么）</label>
-                  <textarea
-                    placeholder="详细说明参与者需要完成的工作"
-                    value={details}
-                    onChange={(e) => setDetails(e.target.value.slice(0, 5000))}
-                    rows={3}
-                    className="w-full resize-none rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.returnsDescription")} *</label>
-                  <textarea
-                    placeholder="参与者的收益如何"
-                    value={returnsDescription}
-                    onChange={(e) => setReturnsDescription(e.target.value.slice(0, 2000))}
-                    rows={2}
-                    className="w-full resize-none rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="mb-0.5 block text-[10px] text-foreground/60">{t("publisher.repayWhen")}</label>
-                  <input
-                    placeholder={t("publisher.repayDefault")}
-                    value={repayWhen}
-                    onChange={(e) => setRepayWhen(e.target.value.slice(0, 200))}
-                    className="w-full rounded border border-foreground/20 bg-black/40 px-2 py-1.5 text-sm"
-                  />
-                </div>
-              </div>
-            )}
 
             {/* 商品/服务：价格、价格说明（图片已集成在商品介绍框内） */}
             {isProductOrService && (

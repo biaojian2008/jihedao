@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
   if (postIdsFilter && postIdsFilter.length > 0) {
     query = query.in("id", postIdsFilter);
   }
-  if (type && ["project", "task", "product", "course", "service", "demand", "stance"].includes(type)) {
+  if (type && ["task", "product", "course", "service", "demand", "stance"].includes(type)) {
     query = query.eq("type", type);
   }
   if (q.trim()) {
@@ -243,15 +243,15 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-  const validTypes = ["project", "task", "product", "course", "service", "demand", "stance"];
+  const validTypes = ["task", "product", "course", "service", "demand", "stance"];
   if (!validTypes.includes(type)) {
     return NextResponse.json({ error: "Invalid type" }, { status: 400 });
   }
 
   const coll = Math.max(0, Number(author_collateral) || 0);
   const freeze = Math.max(0, Number(participant_freeze) || 0);
-  const needsCollateral = ["project", "task", "product", "course", "service", "demand"].includes(type);
-  if (["project", "task"].includes(type)) {
+  const needsCollateral = ["task", "product", "course", "service", "demand"].includes(type);
+  if (type === "task") {
     if (coll <= 0) {
       return NextResponse.json({ error: "项目/任务必须设置发布者抵押（济和币）" }, { status: 400 });
     }

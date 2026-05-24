@@ -139,7 +139,7 @@ export function PostDetailView({ post }: Props) {
   const [error, setError] = useState("");
 
   const currentUserId = getCurrentProfileId();
-  const isProjectOrTask = ["project", "task"].includes(post.type);
+  const isProjectOrTask = post.type === "task";
   const hasCollateral = (post.author_collateral ?? 0) > 0 || (post.participant_freeze ?? 0) > 0;
   const canParticipate = isProjectOrTask && (post.participant_freeze ?? 0) > 0 && currentUserId && currentUserId !== post.author_id;
 

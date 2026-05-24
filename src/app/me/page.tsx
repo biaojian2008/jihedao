@@ -240,4 +240,12 @@ export default function MePage() {
   }
 
   return (
+    <div className="min-h-screen pt-14 pb-20 md:pb-16">
+      <main className="mx-auto max-w-xl px-4 py-8 text-center sm:px-6">
+        <h1 className="mb-2 text-xl font-semibold text-foreground">个人中心</h1>
+        <p className="text-sm text-foreground/60">加载中…</p>
+        {links}
+      </main>
+    </div>
+  );
 }
