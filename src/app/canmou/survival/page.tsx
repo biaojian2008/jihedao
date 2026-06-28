@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { CANMOU_FREE_QUOTA, CANMOU_PAID_COST } from "@/lib/jihe-coin";
+import { ShareButton } from "@/components/share-button";
 
 type Message = { role: "user" | "assistant"; content: string; hasKnowledge?: boolean };
 
@@ -98,6 +99,12 @@ export default function SurvivalHandbookPage() {
           <div className="inline-flex items-center gap-2 mb-2">
             <span className="text-lg">🛡️</span>
             <h1 className="text-xl font-semibold text-foreground">生存手册</h1>
+            <ShareButton
+              url="/canmou/survival"
+              title="🛡️ 生存手册 · 济和参谋"
+              text="执法盘查、劳动纠纷、物业对抗——输入场景，直接出招"
+              claimReward
+            />
           </div>
           <p className="text-xs text-foreground/55">
             输入你遇到的场景，获取具体应对步骤 · 基于实战知识库
