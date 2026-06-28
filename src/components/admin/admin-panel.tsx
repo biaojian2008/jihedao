@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { AdminSkillsSection } from "@/components/admin/admin-skills-section";
+import { AdminSurvivalKbSection } from "@/components/admin/admin-survival-kb-section";
 
 /** 浏览器端用当前 origin，避免相对路径在部分环境下 Failed to fetch */
 function apiUrl(path: string): string {
@@ -778,6 +779,7 @@ export function AdminPanel() {
       </section>
 
       <AdminSkillsSection />
+      <AdminSurvivalKbSection />
     </div>
   );
 }

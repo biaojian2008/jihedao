@@ -1,40 +1,23 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 import { getProfileIdFromCookieHeader } from "@/lib/current-user";
 import {
-  CANMOU_FOLLOWUP_COST,
-  CANMOU_MAIN_COST,
+  CANMOU_FREE_QUOTA,
+  CANMOU_PAID_COST,
   deductCoins,
   JIHE_COIN_REASONS,
 } from "@/lib/jihe-coin";
 import { questionnaires, type CanmouDomain } from "@/lib/questionnaires";
 import { createOpenAIEmbeddingsClient } from "@/lib/openai-embeddings";
 
-/** 与 Claude Messages API 兼容的纯文本轮次（追问对话） */
-type ClaudeTextMessage = { role: "user" | "assistant"; content: string };
+type Message = { role: "user" | "assistant"; content: string };
 
 export const maxDuration = 120;
 
-/**
- * Anthropic SDK 会在 baseURL 后追加 `/v1/messages`。
- * 若环境变量写成 `https://xxx/v1` 或误写成 `.../v1/v1`，会变成 `/v1/v1/messages` 报 404。
- */
-function normalizeAnthropicBaseURL(url: string): string {
-  let u = url.trim().replace(/\/+$/, "");
-  while (/\/v1$/i.test(u)) {
-    u = u.replace(/\/v1$/i, "").replace(/\/+$/, "");
-  }
-  return u;
-}
-
-/** 每次请求新建客户端，确保读到最新的 ANTHROPIC_* 环境变量（代理 Base URL 等） */
-function createAnthropicClient(): Anthropic {
-  const apiKey = process.env.ANTHROPIC_API_KEY?.trim() ?? "";
-  const raw = process.env.ANTHROPIC_BASE_URL?.trim();
-  const baseURL = raw ? normalizeAnthropicBaseURL(raw) : undefined;
-  return new Anthropic({
-    apiKey,
-    ...(baseURL ? { baseURL } : {}),
+function createAgnesClient(): OpenAI {
+  return new OpenAI({
+    apiKey: process.env.AGNES_API_KEY ?? "",
+    baseURL: "https://apihub.agnes-ai.com/v1",
   });
 }
 
@@ -84,11 +67,7 @@ async function retrieveRelevantContent(query: string, domain: string): Promise<s
       match_domain: domain,
       match_count: 5,
     });
-    if (error) {
-      console.error("match_knowledge", error);
-      return "";
-    }
-    if (!data || !Array.isArray(data) || data.length === 0) return "";
+    if (error || !data || !Array.isArray(data) || data.length === 0) return "";
     return "\n\n参考资料：\n" + data.map((item: { content: string }) => item.content).join("\n\n");
   } catch (e) {
     console.error("retrieveRelevantContent", e);
@@ -96,16 +75,27 @@ async function retrieveRelevantContent(query: string, domain: string): Promise<s
   }
 }
 
+async function getUsageCount(userId: string): Promise<number> {
+  const { data } = await supabase
+    .from("canmou_usage")
+    .select("message_count")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return (data as { message_count?: number } | null)?.message_count ?? 0;
+}
+
+async function incrementUsage(userId: string): Promise<void> {
+  const current = await getUsageCount(userId);
+  await supabase.from("canmou_usage").upsert(
+    { user_id: userId, message_count: current + 1, updated_at: new Date().toISOString() },
+    { onConflict: "user_id" }
+  );
+}
+
 export async function POST(request: Request) {
   try {
-    if (!process.env.ANTHROPIC_API_KEY?.trim()) {
-      return Response.json({ error: "服务未配置 Claude（ANTHROPIC_API_KEY）" }, { status: 503 });
-    }
-    if (!process.env.OPENAI_API_KEY?.trim()) {
-      return Response.json(
-        { error: "服务未配置 OpenAI（OPENAI_API_KEY），无法做知识库向量检索" },
-        { status: 503 }
-      );
+    if (!process.env.AGNES_API_KEY?.trim()) {
+      return Response.json({ error: "服务未配置 Agnes API Key（AGNES_API_KEY）" }, { status: 503 });
     }
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return Response.json({ error: "服务未配置数据库" }, { status: 503 });
@@ -119,7 +109,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       domain?: string;
       answers?: Record<string, string>;
-      messages?: ClaudeTextMessage[];
+      messages?: Message[];
       clientToken?: string;
       consultationId?: string;
     };
@@ -132,36 +122,43 @@ export async function POST(request: Request) {
       return Response.json({ error: "未知的参谋类型" }, { status: 400 });
     }
 
+    const usageCount = await getUsageCount(profileId);
+    const isFree = usageCount < CANMOU_FREE_QUOTA;
+
     const systemPrompt = systemPrompts[domain];
-    let finalMessages: ClaudeTextMessage[];
+    let finalMessages: Message[];
     let firstUserMessage: string | undefined;
     let answersForSave: Record<string, string> | undefined;
     let followUpConsultationId: string | null = null;
 
     if (answers && typeof answers === "object" && !Array.isArray(answers)) {
-      const deduct = await deductCoins(supabase, {
-        userId: profileId,
-        amount: CANMOU_MAIN_COST,
-        reason: JIHE_COIN_REASONS.CANMOU_MAIN,
-        referenceType: "canmou",
-        referenceId: domain,
-      });
-      if (!deduct.ok) {
-        if (deduct.error === "insufficient balance") {
-          return Response.json(
-            {
-              error: `济和币余额不足，主咨询需 ${CANMOU_MAIN_COST} 济和币`,
-              code: "INSUFFICIENT_JIHE",
-              required: CANMOU_MAIN_COST,
-            },
-            { status: 402 }
-          );
+      if (!isFree) {
+        const deduct = await deductCoins(supabase, {
+          userId: profileId,
+          amount: CANMOU_PAID_COST,
+          reason: JIHE_COIN_REASONS.CANMOU_PAID,
+          referenceType: "canmou",
+          referenceId: domain,
+        });
+        if (!deduct.ok) {
+          if (deduct.error === "insufficient balance") {
+            return Response.json(
+              {
+                error: `济和币余额不足，已用完 ${CANMOU_FREE_QUOTA} 条免费额度，每条消息需 ${CANMOU_PAID_COST} 济和币`,
+                code: "INSUFFICIENT_JIHE",
+                required: CANMOU_PAID_COST,
+              },
+              { status: 402 }
+            );
+          }
+          return Response.json({ error: deduct.error ?? "扣款失败" }, { status: 400 });
         }
-        return Response.json({ error: deduct.error ?? "扣款失败" }, { status: 400 });
       }
 
       const formattedAnswers = formatAnswers(domain, answers);
-      const relevantContent = await retrieveRelevantContent(formattedAnswers, domain);
+      const relevantContent = process.env.OPENAI_API_KEY?.trim()
+        ? await retrieveRelevantContent(formattedAnswers, domain)
+        : "";
       const userMessage = `${formattedAnswers}${relevantContent}\n\n请根据以上情况给出专业建议。`;
       firstUserMessage = userMessage;
       finalMessages = [{ role: "user", content: userMessage }];
@@ -201,31 +198,33 @@ export async function POST(request: Request) {
         return Response.json({ error: "无权在该记录下追问" }, { status: 403 });
       }
 
-      const deduct = await deductCoins(supabase, {
-        userId: profileId,
-        amount: CANMOU_FOLLOWUP_COST,
-        reason: JIHE_COIN_REASONS.CANMOU_FOLLOWUP,
-        referenceType: "canmou",
-        referenceId: cid,
-      });
-      if (!deduct.ok) {
-        if (deduct.error === "insufficient balance") {
-          return Response.json(
-            {
-              error: `济和币余额不足，每条追问需 ${CANMOU_FOLLOWUP_COST} 济和币`,
-              code: "INSUFFICIENT_JIHE",
-              required: CANMOU_FOLLOWUP_COST,
-            },
-            { status: 402 }
-          );
+      if (!isFree) {
+        const deduct = await deductCoins(supabase, {
+          userId: profileId,
+          amount: CANMOU_PAID_COST,
+          reason: JIHE_COIN_REASONS.CANMOU_PAID,
+          referenceType: "canmou",
+          referenceId: cid,
+        });
+        if (!deduct.ok) {
+          if (deduct.error === "insufficient balance") {
+            return Response.json(
+              {
+                error: `济和币余额不足，已用完 ${CANMOU_FREE_QUOTA} 条免费额度，每条消息需 ${CANMOU_PAID_COST} 济和币`,
+                code: "INSUFFICIENT_JIHE",
+                required: CANMOU_PAID_COST,
+              },
+              { status: 402 }
+            );
+          }
+          return Response.json({ error: deduct.error ?? "扣款失败" }, { status: 400 });
         }
-        return Response.json({ error: deduct.error ?? "扣款失败" }, { status: 400 });
       }
 
       followUpConsultationId = cid;
-      finalMessages = JSON.parse(JSON.stringify(messages)) as ClaudeTextMessage[];
+      finalMessages = JSON.parse(JSON.stringify(messages)) as Message[];
       const last = finalMessages[finalMessages.length - 1];
-      if (last?.role === "user" && typeof last.content === "string") {
+      if (last?.role === "user" && typeof last.content === "string" && process.env.OPENAI_API_KEY?.trim()) {
         const relevantContent = await retrieveRelevantContent(last.content, domain);
         if (relevantContent) last.content += relevantContent;
       }
@@ -233,18 +232,19 @@ export async function POST(request: Request) {
       return Response.json({ error: "请提供 answers 或 messages" }, { status: 400 });
     }
 
-    const modelId =
-      process.env.ANTHROPIC_MODEL?.trim() || "claude-3-5-sonnet-20241022";
-
-    const response = await createAnthropicClient().messages.create({
-      model: modelId,
+    const agnes = createAgnesClient();
+    const response = await agnes.chat.completions.create({
+      model: "agnes-2.0-flash",
       max_tokens: 2000,
-      system: systemPrompt,
-      messages: finalMessages,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...finalMessages,
+      ],
     });
 
-    const block = response.content[0];
-    const text = block?.type === "text" ? block.text : "";
+    const text = response.choices[0]?.message?.content ?? "";
+
+    await incrementUsage(profileId);
 
     let consultationId: string | undefined;
 
@@ -255,12 +255,7 @@ export async function POST(request: Request) {
         result: string;
         client_token?: string;
         user_id: string;
-      } = {
-        domain,
-        answers: answersForSave,
-        result: text,
-        user_id: profileId,
-      };
+      } = { domain, answers: answersForSave, result: text, user_id: profileId };
       if (clientToken) insertRow.client_token = clientToken;
 
       const { data: inserted, error: insertErr } = await supabase
@@ -270,7 +265,7 @@ export async function POST(request: Request) {
         .single();
 
       if (insertErr) {
-        console.error("consultations insert:", insertErr.message, insertErr);
+        console.error("consultations insert:", insertErr.message);
       } else if (inserted?.id) {
         consultationId = inserted.id as string;
       }
@@ -279,23 +274,25 @@ export async function POST(request: Request) {
         .from("consultations")
         .update({ result: text })
         .eq("id", followUpConsultationId);
-      if (upErr) console.error("consultations update:", upErr.message, upErr);
+      if (upErr) console.error("consultations update:", upErr.message);
       else consultationId = followUpConsultationId;
     }
 
+    const remainingFree = Math.max(0, CANMOU_FREE_QUOTA - (usageCount + 1));
+
     return Response.json({
       content: text,
+      remainingFree,
+      isFree,
       ...(firstUserMessage !== undefined ? { firstUserMessage } : {}),
       ...(consultationId ? { consultationId } : {}),
     });
   } catch (error) {
     console.error(error);
     const raw = error instanceof Error ? error.message : String(error);
-    const details = raw.length > 800 ? `${raw.slice(0, 800)}…` : raw;
-    const noChannel = /model_not_found|No available channel/i.test(raw);
-    const errorText = noChannel
-      ? "Claude 网关返回「无可用通道」：当前账户被路由到的分发线（如 Claude-Krio 企业对接）未开通你请求的模型。这与本站代码、令牌模型白名单无关，需在蓝移侧开通对应模型通道、调整套餐/线路，或更换为其他提供 Anthropic 兼容 API 的平台并在 Vercel 配置 ANTHROPIC_API_KEY 与 ANTHROPIC_BASE_URL。"
-      : "服务暂时不可用";
-    return Response.json({ error: errorText, details }, { status: noChannel ? 503 : 500 });
+    return Response.json(
+      { error: "服务暂时不可用", details: raw.slice(0, 500) },
+      { status: 500 }
+    );
   }
 }

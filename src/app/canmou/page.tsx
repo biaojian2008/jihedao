@@ -27,6 +27,21 @@ export default function CanmouHomePage() {
 
         <CanmouHistorySection />
 
+        {/* 生存手册 — 置顶入口 */}
+        <Link
+          href="/canmou/survival"
+          className="block rounded-xl border border-red-500/40 bg-red-500/5 p-4 mb-6 transition hover:border-red-500/70 hover:bg-red-500/10 group"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-base">🛡️</span>
+            <span className="text-sm font-semibold text-red-400 group-hover:text-red-300">生存手册</span>
+            <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-400/80">新</span>
+          </div>
+          <p className="text-xs text-foreground/55">
+            执法盘查 · 劳动纠纷 · 物业对抗 · 行政维权 — 具体场景，直接出招
+          </p>
+        </Link>
+
         <ul className="space-y-3">
           {cards.map(({ domain, desc }) => {
             const q = questionnaires[domain];

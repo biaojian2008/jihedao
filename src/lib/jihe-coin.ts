@@ -16,12 +16,17 @@ export const JIHE_COIN_REASONS = {
   MANUAL: "管理员发放",
   CANMOU_MAIN: "济和参谋·主咨询",
   CANMOU_FOLLOWUP: "济和参谋·追问",
+  CANMOU_PAID: "济和参谋·付费消息",
 } as const;
 
-/** 济和参谋：主问卷咨询一次消耗的济和币 */
-export const CANMOU_MAIN_COST = 10;
-/** 济和参谋：每条追问消耗的济和币 */
-export const CANMOU_FOLLOWUP_COST = 5;
+/** 济和参谋：所有参谋类型共享的免费消息配额（含生存手册） */
+export const CANMOU_FREE_QUOTA = 10;
+/** 济和参谋：超出免费配额后每条消息的济和币费用 */
+export const CANMOU_PAID_COST = 10;
+/** @deprecated 用 CANMOU_FREE_QUOTA / CANMOU_PAID_COST 替代 */
+export const CANMOU_MAIN_COST = 0;
+/** @deprecated 用 CANMOU_FREE_QUOTA / CANMOU_PAID_COST 替代 */
+export const CANMOU_FOLLOWUP_COST = 0;
 
 /** 各行为发放数量（可后续改为从 cms_config 读取） */
 export const JIHE_COIN_RULES: Record<string, number> = {
