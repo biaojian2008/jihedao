@@ -11,7 +11,6 @@ const cards: { domain: keyof typeof questionnaires; desc: string }[] = [
   { domain: "banking", desc: "金融不依赖单一机构" },
   { domain: "legal", desc: "用系统的规则对抗系统" },
   { domain: "medical", desc: "健康不依赖单一体系" },
-  { domain: "education", desc: "下一代不被单一体系规训" },
 ];
 
 export default function CanmouHomePage() {
@@ -49,6 +48,30 @@ export default function CanmouHomePage() {
             text="执法盘查、劳动纠纷、物业对抗——输入场景，直接出招"
             claimReward
             className="flex-shrink-0 flex items-center justify-center w-10 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition"
+          />
+        </div>
+
+        {/* 孩子未来规划器 — 免费测算入口 */}
+        <div className="mb-6 flex items-stretch gap-2">
+          <Link
+            href="/canmou/planner"
+            className="group flex-1 rounded-xl border border-accent/40 bg-accent/5 p-4 transition hover:border-accent/70 hover:bg-accent/10"
+          >
+            <div className="mb-1 flex items-center gap-2">
+              <span className="text-base">🧭</span>
+              <span className="text-sm font-semibold text-accent">孩子未来 · 全球发展规划器</span>
+              <span className="ml-auto rounded bg-accent/15 px-1.5 py-0.5 text-[10px] text-accent/80">免费</span>
+            </div>
+            <p className="text-xs text-foreground/55">
+              录入家庭条件，生成带时间轴的十年路线图——三套方案，标明代价、赌点与不能失手的环节
+            </p>
+          </Link>
+          <ShareButton
+            url="/canmou/planner"
+            title="🧭 孩子未来 · 全球发展规划器 · 济和"
+            text="免费测算：三套方案的十年国际教育路线图，标明代价、赌点与分岔口"
+            claimReward
+            className="flex w-10 flex-shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/5 text-accent/60 transition hover:bg-accent/10 hover:text-accent"
           />
         </div>
 

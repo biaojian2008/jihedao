@@ -9,7 +9,7 @@ const domainDesc: Record<string, string> = {
   banking: "金融不依赖单一机构，全球开户实战攻略",
   legal: "用系统的规则对抗系统，法律维权策略",
   medical: "健康不依赖单一体系，全球就医资源指南",
-  education: "下一代不被单一体系规训，留学与教育主权",
+  education: "下一代不被单一体系规训，面向未来的成长路径规划",
 };
 
 export async function generateMetadata({
