@@ -10,7 +10,6 @@ const cards: { domain: keyof typeof questionnaires; desc: string }[] = [
   { domain: "offshore", desc: "用结构隔离风险保护资产" },
   { domain: "banking", desc: "金融不依赖单一机构" },
   { domain: "legal", desc: "用系统的规则对抗系统" },
-  { domain: "medical", desc: "健康不依赖单一体系" },
 ];
 
 export default function CanmouHomePage() {
@@ -48,6 +47,34 @@ export default function CanmouHomePage() {
             text="执法盘查、劳动纠纷、物业对抗——输入场景，直接出招"
             claimReward
             className="flex-shrink-0 flex items-center justify-center w-10 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition"
+          />
+        </div>
+
+        {/* 癌症国际就医 — 替换原医疗参谋入口 */}
+        <div className="mb-6 flex items-stretch gap-2">
+          <Link
+            href="/canmou/cancer"
+            className="group flex-1 rounded-xl border border-red-500/40 bg-red-500/5 p-4 transition hover:border-red-500/70 hover:bg-red-500/10"
+          >
+            <div className="mb-1 flex items-center gap-2">
+              <span className="text-base">🏥</span>
+              <span className="text-sm font-semibold text-red-400 group-hover:text-red-300">
+                癌症国际就医参谋
+              </span>
+              <span className="ml-auto rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] text-red-400/80">
+                新
+              </span>
+            </div>
+            <p className="text-xs text-foreground/55">
+              国内标准路径 · 国际指南要点 · 印度等地可及性与费用——中立对比，供您和主治医生参考
+            </p>
+          </Link>
+          <ShareButton
+            url="/canmou/cancer"
+            title="🏥 癌症国际就医参谋 · 济和"
+            text="国内外治疗路径与费用中立对比，帮癌症患者做初步信息梳理"
+            claimReward
+            className="flex w-10 flex-shrink-0 items-center justify-center rounded-xl border border-red-500/20 bg-red-500/5 text-red-400/60 transition hover:bg-red-500/10 hover:text-red-400"
           />
         </div>
 
