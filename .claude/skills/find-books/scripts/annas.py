@@ -38,12 +38,39 @@ UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
       "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36")
 
 
+_CFG_CACHE = None
+
+
+def _cfg():
+    """读取脚本同目录下的 config.json（可选）。环境变量优先级高于它。"""
+    global _CFG_CACHE
+    if _CFG_CACHE is None:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _CFG_CACHE = json.load(f)
+        except Exception:  # noqa: BLE001
+            _CFG_CACHE = {}
+    return _CFG_CACHE
+
+
+def _conf(name, default=""):
+    """取配置：环境变量 > config.json > 默认值。"""
+    v = os.environ.get(name)
+    if v:
+        return v.strip()
+    v = _cfg().get(name)
+    if v:
+        return str(v).strip()
+    return default
+
+
 def _base():
-    return os.environ.get("ANNAS_BASE_URL", DEFAULT_BASE).strip().rstrip("/")
+    return _conf("ANNAS_BASE_URL", DEFAULT_BASE).rstrip("/")
 
 
 def _key():
-    return os.environ.get("ANNAS_SECRET_KEY", "").strip()
+    return _conf("ANNAS_SECRET_KEY", "")
 
 
 def _bases_to_try():
@@ -65,7 +92,7 @@ def _download_bases():
     if b in KNOWN_MIRRORS:
         return _bases_to_try()
     # 用户自定义了一个不在白名单里的域名：尊重其选择，但只用这一个，并告警。
-    if os.environ.get("ANNAS_BASE_URL"):
+    if os.environ.get("ANNAS_BASE_URL") or _cfg().get("ANNAS_BASE_URL"):
         sys.stderr.write(
             f"[提醒] ANNAS_BASE_URL={b} 不在已知官方镜像白名单内。"
             "下载会把你的 Secret key 发往该域名，请确认它是 Anna's Archive 官方域名"
@@ -184,12 +211,12 @@ def _filename_from_cd(cd):
 
 # ---------------------------------------------------------------- 翻译
 def translate(text, to="中文"):
-    key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
+    key = _conf("DEEPSEEK_API_KEY", "")
     if not key:
         raise SystemExit("[翻译失败] 未设置 DEEPSEEK_API_KEY。")
-    base = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
+    base = _conf("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
     body = json.dumps({
-        "model": os.environ.get("DEEPSEEK_MODEL", "deepseek-chat"),
+        "model": _conf("DEEPSEEK_MODEL", "deepseek-chat"),
         "messages": [
             {"role": "system",
              "content": f"你是专业翻译。把用户给出的内容准确翻译成{to}，"
