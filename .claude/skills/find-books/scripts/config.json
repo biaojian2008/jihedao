@@ -1,8 +1,8 @@
 {
-  "_说明": "找书技能配置。把下面占位符换成你的真实值即可；环境变量优先级高于本文件。域名变了改 ANNAS_BASE_URL。",
+  "_说明": "找书技能配置。环境变量优先级高于本文件；域名变了改 ANNAS_BASE_URL。",
   "ANNAS_BASE_URL": "annas-archive.is",
-  "ANNAS_SECRET_KEY": "在此填入你的 Anna's Archive Secret key",
-  "DEEPSEEK_API_KEY": "在此填入你的 DeepSeek API key",
+  "ANNAS_SECRET_KEY": "4GbRYYAVzZnRMHEVPkxeWMRJycLNM",
+  "DEEPSEEK_API_KEY": "sk-6d233e5b52564f54a0d963fcd06cc439",
   "DEEPSEEK_BASE_URL": "https://api.deepseek.com",
   "DEEPSEEK_MODEL": "deepseek-chat"
 }
