@@ -25,8 +25,15 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-DEFAULT_BASE = "annas-archive.org"
-MIRRORS = ["annas-archive.org", "annas-archive.se", "annas-archive.gl"]
+# ⚠️ Anna's Archive 域名经常被查封/更换（.org 已于 2026-01 关停、.li 于 2026-03 删除）。
+# 当前工作域名请以官方维基百科页面 https://en.wikipedia.org/wiki/Anna%27s_Archive
+# 为准，并用环境变量 ANNAS_SECRET_KEY 对应的 ANNAS_BASE_URL 指定。
+# 下面这份是「已知官方镜像」白名单——只有搜索(不带密钥)会轮换它们；
+# 下载(会带上你的 Secret key)只发往你显式设置的 ANNAS_BASE_URL 或此白名单内的域名，
+# 绝不发往未知域名，以免把密钥泄露给钓鱼站。
+DEFAULT_BASE = "annas-archive.is"
+KNOWN_MIRRORS = ["annas-archive.is", "annas-archive.gl",
+                 "annas-archive.pk", "annas-archive.gd"]
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
       "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36")
 
@@ -40,15 +47,31 @@ def _key():
 
 
 def _bases_to_try():
-    """当前配置的域名优先，再尝试其它镜像。"""
+    """当前配置的域名优先，再尝试已知官方镜像。"""
     b = _base()
-    order = [b] + [m for m in MIRRORS if m != b]
+    order = [b] + [m for m in KNOWN_MIRRORS if m != b]
     seen, out = set(), []
     for x in order:
         if x not in seen:
             seen.add(x)
             out.append(x)
     return out
+
+
+def _download_bases():
+    """下载会带上 Secret key，只发往用户显式配置的域名或已知官方白名单，
+    绝不轮换到未知域名，避免密钥泄露给钓鱼站。"""
+    b = _base()
+    if b in KNOWN_MIRRORS:
+        return _bases_to_try()
+    # 用户自定义了一个不在白名单里的域名：尊重其选择，但只用这一个，并告警。
+    if os.environ.get("ANNAS_BASE_URL"):
+        sys.stderr.write(
+            f"[提醒] ANNAS_BASE_URL={b} 不在已知官方镜像白名单内。"
+            "下载会把你的 Secret key 发往该域名，请确认它是 Anna's Archive 官方域名"
+            "（见其维基百科页面），否则密钥可能泄露。\n")
+        return [b]
+    return KNOWN_MIRRORS
 
 
 def _fetch(url, timeout=30):
@@ -120,7 +143,7 @@ def download(md5, out_dir="."):
         raise SystemExit("[下载失败] 未设置 ANNAS_SECRET_KEY，无法调用快速下载 API。")
     md5 = md5.lower().strip()
     last_err = None
-    for base in _bases_to_try():
+    for base in _download_bases():
         api = f"https://{base}/dyn/api/fast_download.json?md5={md5}&key={urllib.parse.quote(key)}"
         try:
             raw, _, _ = _fetch(api)

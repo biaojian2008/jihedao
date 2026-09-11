@@ -18,11 +18,28 @@ description: >-
 | --- | --- | --- |
 | `ANNAS_SECRET_KEY` | Anna's Archive 账号的 **Secret key**（账号设置页里那把登录密钥）| 下载必需；搜索通常可不用 |
 | `DEEPSEEK_API_KEY` | DeepSeek 的 API key | 翻译必需 |
-| `ANNAS_BASE_URL` | 镜像域名，默认 `annas-archive.org`，可改 `annas-archive.se` / `annas-archive.gl` | 可选 |
+| `ANNAS_BASE_URL` | 当前工作域名（**经常变**，见下方），默认 `annas-archive.is` | 建议设置 |
 | `DEEPSEEK_BASE_URL` | 默认 `https://api.deepseek.com` | 可选 |
 | `DEEPSEEK_MODEL` | 默认 `deepseek-chat` | 可选 |
 
 > ⚠️ 不要把密钥写进代码或聊天里。快速下载需要 Anna's Archive 的**付费会员**额度。
+
+## ⚠️ 关于 Anna's Archive 域名（重要）
+
+Anna's Archive 域名**经常被查封、频繁更换**：`.org` 已于 2026-01 关停、`.li` 于
+2026-03 删除。**当前工作域名请以官方维基百科页面为准**：
+<https://en.wikipedia.org/wiki/Anna%27s_Archive>。当前在用的是
+`annas-archive.is`（已设为默认并列入白名单）；其它已知官方镜像有
+`annas-archive.gl` / `annas-archive.pk` / `annas-archive.gd`。
+
+用法：域名变了就把新的设进环境变量 `ANNAS_BASE_URL`（例如 `annas-archive.is`）。
+
+**防钓鱼/防泄露密钥的机制**（脚本已内置）：
+- **搜索**不带密钥，会在已知官方镜像间自动轮换，安全。
+- **下载**会把你的 Secret key 作为参数发出，因此脚本**只**发往你显式设置的
+  `ANNAS_BASE_URL` 或内置的官方白名单域名；若你设置的域名不在白名单内，会先在
+  stderr 打印警告——**请务必确认该域名是官方的再继续**，否则密钥可能被钓鱼站窃取。
+- 域名更新后，改内置白名单在 `scripts/annas.py` 的 `KNOWN_MIRRORS`。
 
 ## 用法
 
